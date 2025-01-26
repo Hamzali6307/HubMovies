@@ -2,44 +2,90 @@ package com.hamy.hubmovies.ui.viewModel
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hamy.hubmovies.common.ApiState
 import com.hamy.hubmovies.common.doOnFailure
 import com.hamy.hubmovies.common.doOnLoading
 import com.hamy.hubmovies.common.doOnSuccess
+import com.hamy.hubmovies.data.model.MovieDetail
 import com.hamy.hubmovies.data.model.Movies
+import com.hamy.hubmovies.data.model.TrendingMovies
 import com.hamy.hubmovies.features.movies.domain.useCase.MovieUseCase
 import com.hamy.hubmovies.utils.Extensions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class MovieViewModel @Inject constructor(private val useCase: MovieUseCase):ViewModel() {
+class MovieViewModel @Inject constructor(private val useCase: MovieUseCase) : ViewModel() {
     private val _res: MutableState<MovieState> = mutableStateOf(MovieState())
+    private val _movieDetail: MutableState<MovieDetailState> = mutableStateOf(MovieDetailState())
+    private val _trendingMovies: MutableState<TrendingMoviesState> = mutableStateOf(TrendingMoviesState())
     val res: State<MovieState> = _res
+    val movieDetail: State<MovieDetailState> = _movieDetail
+    val trendingMovies: State<TrendingMoviesState> = _trendingMovies
 
     init {
         viewModelScope.launch {
             useCase.getMovies()
-                .doOnSuccess {
-                    _res.value = MovieState(data = it!!)
-                    Extensions.myLogs(it.toString())
+                .doOnSuccess { _res.value = MovieState(data = it!!) }
+                .doOnFailure { _res.value = MovieState(error = it?.message.toString()) }
+                .doOnLoading { _res.value = MovieState(isLoading = true) }.collect()
+        }
+    }
+
+    fun getMovieDetails(movieId: String) {
+        viewModelScope.launch {
+            useCase.getMovieDetails(movieId)
+                .filterNotNull()
+                .doOnSuccess { movieDetail -> _movieDetail.value = MovieDetailState(data = movieDetail) }
+                .doOnFailure { _movieDetail.value = MovieDetailState(error = it?.message.toString()) }
+                .doOnLoading { _movieDetail.value = MovieDetailState(isLoading = true) }.collect()
+        }
+    }
+    fun getTopRatedMovies() {
+        viewModelScope.launch {
+            useCase.getTopRatedMovies()
+                .doOnSuccess { _res.value = MovieState(data = it!!) }
+                .doOnFailure { _res.value = MovieState(error = it?.message.toString()) }
+                .doOnLoading { _res.value = MovieState(isLoading = true) }.collect()
+        }
+    }
+    fun getTrendingMovies() {
+        viewModelScope.launch {
+            useCase.getTrendingMovies()
+                .filterNotNull()
+                .doOnSuccess { movieDetail ->
+                    _trendingMovies.value = TrendingMoviesState(data = movieDetail)
+                    Extensions.mLogs(movieDetail.toString())
                 }
                 .doOnFailure {
-                    _res.value = MovieState(error = it?.message.toString())
+                    _trendingMovies.value = TrendingMoviesState(error = it?.message.toString())
+                    Extensions.mLogs(it?.message.toString())
                 }
-                .doOnLoading {
-                    _res.value = MovieState(isLoading = true)
-                }.collect()
+                .doOnLoading { _trendingMovies.value = TrendingMoviesState(isLoading = true) }.collect()
         }
     }
 }
+
 data class MovieState(
     val data: List<Movies.Results> = emptyList(),
     val error: String = "",
     val isLoading: Boolean = false
+)
+
+data class MovieDetailState(
+    val data: MovieDetail = MovieDetail(),
+    val error: String = "",
+    val isLoading: Boolean = false
+)
+data class TrendingMoviesState(
+    val data: TrendingMovies = TrendingMovies(),
+    val error: String = "",
+    val isLoading: Boolean = false
+
 )

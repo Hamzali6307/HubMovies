@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "com.hamy.hubmovies"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.hamy.hubmovies"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -95,6 +95,10 @@ dependencies {
     implementation(libs.coil.compose)
     //splash
     implementation(libs.androidx.core.splashscreen)
+    //loading button
+
+    implementation(libs.gson)
+
 
 
 

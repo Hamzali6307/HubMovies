@@ -1,9 +1,14 @@
 package com.hamy.hubmovies.features.movies.domain.repository
 
 import com.hamy.hubmovies.common.ApiState
+import com.hamy.hubmovies.data.model.MovieDetail
 import com.hamy.hubmovies.data.model.Movies
+import com.hamy.hubmovies.data.model.TrendingMovies
 import kotlinx.coroutines.flow.Flow
 
 interface MovieRepository {
     suspend fun getMovies(): Flow<ApiState<Movies>>
+    suspend fun getTopRatedMovies(): Flow<ApiState<Movies>>
+    suspend fun getMovieDetails(movieId:String): Flow<ApiState<MovieDetail>>
+    suspend fun getTrendingMovies(): Flow<ApiState<TrendingMovies>>
 }

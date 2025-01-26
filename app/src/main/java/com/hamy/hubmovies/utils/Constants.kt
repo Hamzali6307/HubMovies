@@ -2,6 +2,7 @@ package com.hamy.hubmovies.utils
 
 object Constants {
    const val Login  =  "login_screen"
+   const val MovieDetail  =  "movie_detail"
    const val MyLOGS  =  "my_logs"
    const val Signup  =  "signup_screen"
    const val MainPage  =  "main_page_screen"

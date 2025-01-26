@@ -32,7 +32,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,18 +44,17 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -67,7 +65,7 @@ import com.hamy.hubmovies.utils.Constants
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+open class MainActivity : ComponentActivity() {
     private val splashViewModel: MainActivityViewModel by viewModels()
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -76,6 +74,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         window.statusBarColor = ContextCompat.getColor(this, R.color.btn_back)
         setContent {
+            val navController = rememberNavController()
             installSplashScreen().apply {
                 setKeepOnScreenCondition { splashViewModel.isLoading.value }
             }
@@ -95,14 +94,13 @@ class MainActivity : ComponentActivity() {
                             contentScale = ContentScale.Crop // Scales the image to cover the box area
                         )
                     }
-                    AppNavigation()
+                    AppNavigation(navController,splashViewModel)
                 }
             }
         }
     }
 }
 
-@Preview
 @Composable
 fun SignUpScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
@@ -273,9 +271,6 @@ fun SignUpScreen(navController: NavController) {
         }
     }
 }
-
-
-@Preview
 @Composable
 fun LoginScreen(
     navController: NavController
@@ -417,15 +412,12 @@ fun LoginScreen(
 }
 
 @Composable
-fun AppNavigation() {
-    // NavController to handle navigation between screens
-    // Navigation host setup, defining the screens
-    rememberNavController().apply {
-        NavHost(navController = this, startDestination = "login_screen") {
+fun AppNavigation(navController: NavHostController, splashViewModel: MainActivityViewModel) {
+    navController.apply {
+        NavHost(navController = this, startDestination = Constants.Login ) {
             composable(Constants.Login) { LoginScreen(this@apply) }  // Start with LoginScreen
             composable(Constants.Signup) { SignUpScreen(this@apply) }  // Start with LoginScreen
-            composable(Constants.MainPage) { MainScreen(this@apply) }  // Navigate to MainScreen
+            composable(Constants.MainPage) { MainScreen(this@apply,splashViewModel) }  // Navigate to MainScreen
         }
     }
-
 }
