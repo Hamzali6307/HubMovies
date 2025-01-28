@@ -22,6 +22,8 @@
     retrofit = "2.9.0"
     hiltVersion = "2.52"
     kspVersion = "2.0.20-1.0.24"
+    volley = "1.2.1"
+    firebaseAppdistributionGradle = "5.1.0"
 
     [libraries]
     androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,6 +60,8 @@
     kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
     moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshi" }
     retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+    volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
+    firebase-appdistribution-gradle = { group = "com.google.firebase", name = "firebase-appdistribution-gradle", version.ref = "firebaseAppdistributionGradle" }
 
 
     [plugins]

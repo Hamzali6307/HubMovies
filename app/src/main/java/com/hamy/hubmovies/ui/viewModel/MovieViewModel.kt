@@ -5,7 +5,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hamy.hubmovies.common.ApiState
 import com.hamy.hubmovies.common.doOnFailure
 import com.hamy.hubmovies.common.doOnLoading
 import com.hamy.hubmovies.common.doOnSuccess
@@ -23,15 +22,17 @@ import javax.inject.Inject
 @HiltViewModel
 class MovieViewModel @Inject constructor(private val useCase: MovieUseCase) : ViewModel() {
     private val _res: MutableState<MovieState> = mutableStateOf(MovieState())
+    private val _topRatedMovies: MutableState<MovieState> = mutableStateOf(MovieState())
     private val _movieDetail: MutableState<MovieDetailState> = mutableStateOf(MovieDetailState())
     private val _trendingMovies: MutableState<TrendingMoviesState> = mutableStateOf(TrendingMoviesState())
+    val topRatedMovies: State<MovieState> = _topRatedMovies
     val res: State<MovieState> = _res
     val movieDetail: State<MovieDetailState> = _movieDetail
     val trendingMovies: State<TrendingMoviesState> = _trendingMovies
 
-    init {
+    fun getMovies(pageNumber:Int? = 1) {
         viewModelScope.launch {
-            useCase.getMovies()
+            useCase.getMovies(pageNumber?: 1)
                 .doOnSuccess { _res.value = MovieState(data = it!!) }
                 .doOnFailure { _res.value = MovieState(error = it?.message.toString()) }
                 .doOnLoading { _res.value = MovieState(isLoading = true) }.collect()
@@ -47,12 +48,12 @@ class MovieViewModel @Inject constructor(private val useCase: MovieUseCase) : Vi
                 .doOnLoading { _movieDetail.value = MovieDetailState(isLoading = true) }.collect()
         }
     }
-    fun getTopRatedMovies() {
+    fun getTopRatedMovies(pageNumber: Int? = 1) {
         viewModelScope.launch {
-            useCase.getTopRatedMovies()
-                .doOnSuccess { _res.value = MovieState(data = it!!) }
-                .doOnFailure { _res.value = MovieState(error = it?.message.toString()) }
-                .doOnLoading { _res.value = MovieState(isLoading = true) }.collect()
+            useCase.getTopRatedMovies(pageNumber = pageNumber?: 1)
+                .doOnSuccess { _topRatedMovies.value = MovieState(data = it!!) }
+                .doOnFailure { _topRatedMovies.value = MovieState(error = it?.message.toString()) }
+                .doOnLoading { _topRatedMovies.value = MovieState(isLoading = true) }.collect()
         }
     }
     fun getTrendingMovies() {

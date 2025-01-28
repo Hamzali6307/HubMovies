@@ -48,7 +48,11 @@ android {
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+           // excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes.add("META-INF/DEPENDENCIES")
+            pickFirsts.add("META-INF/INDEX.LIST")
+            merges.add("META-INF/NOTICE.md")
+            merges.add("META-INF/LICENSE.md")
         }
     }
 }
@@ -63,6 +67,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.volley)
+    implementation(libs.firebase.appdistribution.gradle)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

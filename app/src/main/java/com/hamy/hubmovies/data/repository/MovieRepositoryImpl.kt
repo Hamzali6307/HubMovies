@@ -12,11 +12,11 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class MovieRepositoryImpl @Inject constructor(private val apiService: ApiService): MovieRepository,BaseRepository() {
-    override suspend fun getMovies(): Flow<ApiState<Movies>>  = safeApiCall{
-        apiService.getMovies()
+    override suspend fun getMovies(pageNumber: Int): Flow<ApiState<Movies>>  = safeApiCall{
+        apiService.getMovies(pageNumber)
     }
-    override suspend fun getTopRatedMovies(): Flow<ApiState<Movies>>  = safeApiCall{
-        apiService.getTopRatedMovies()
+    override suspend fun getTopRatedMovies(pageNumber: Int): Flow<ApiState<Movies>>  = safeApiCall{
+        apiService.getTopRatedMovies(pageNumber)
     }
     override suspend fun getMovieDetails(movieId:String): Flow<ApiState<MovieDetail>>  = safeApiCall{
         apiService.getMovieDetail(movieId,Constants.API_KEY)

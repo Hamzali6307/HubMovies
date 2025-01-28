@@ -15,15 +15,15 @@ class MovieUseCase @Inject constructor(
     private val repo: MovieRepository,
     private val mapper: MovieMapper
 ) {
-    suspend fun getMovies(): Flow<ApiState<List<Movies.Results>?>> {
-        return repo.getMovies().map { results ->
+    suspend fun getMovies(pageNumber: Int): Flow<ApiState<List<Movies.Results>?>> {
+        return repo.getMovies(pageNumber).map { results ->
             results.map {
                 mapper.fromMap(it)
             }
         }
     }
-    suspend fun getTopRatedMovies(): Flow<ApiState<List<Movies.Results>?>> {
-        return repo.getTopRatedMovies().map { results ->
+    suspend fun getTopRatedMovies(pageNumber:Int): Flow<ApiState<List<Movies.Results>?>> {
+        return repo.getTopRatedMovies(pageNumber).map { results ->
             results.map {
                 mapper.fromMap(it)
             }

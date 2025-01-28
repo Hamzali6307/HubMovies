@@ -11,19 +11,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -44,13 +48,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterVertically
@@ -58,6 +69,7 @@ import androidx.compose.ui.Alignment.Companion.TopStart
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -79,7 +91,6 @@ import coil.request.ImageRequest
 import coil.transform.CircleCropTransformation
 import com.google.gson.Gson
 import com.hamy.hubmovies.R
-import com.hamy.hubmovies.data.model.MovieDetail
 import com.hamy.hubmovies.data.model.Movies
 import com.hamy.hubmovies.data.network.ApiService
 import com.hamy.hubmovies.ui.screens.activity.MainActivityViewModel
@@ -87,6 +98,8 @@ import com.hamy.hubmovies.ui.screens.widgets.BottomNavItem.Home
 import com.hamy.hubmovies.ui.viewModel.MovieViewModel
 import com.hamy.hubmovies.utils.Constants
 import com.hamy.hubmovies.utils.Extensions
+import com.hamy.hubmovies.utils.Extensions.GenericErrorScreen
+import com.hamy.hubmovies.utils.Extensions.ShimmerDescriptionPage
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,7 +108,6 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val navController = rememberNavController()
-
 
     Scaffold(
         topBar = {
@@ -190,35 +202,120 @@ fun ProfileScreen(
     navController: NavHostController,
     viewModel: MovieViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(Unit) {
-        viewModel.getTopRatedMovies()
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var pageNumber by remember { mutableIntStateOf(1) }
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var isLastPage by remember { mutableStateOf(false) }
+    var items by remember { mutableStateOf(emptyList<Movies.Results>()) }
+    val state = rememberLazyGridState()
+    val shouldStartPaginate = remember {
+        derivedStateOf {
+            (isLoadingMore || isLastPage).not() && (state.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                ?: -9) >= (state.layoutInfo.totalItemsCount - 5)}
     }
-    viewModel.res.value.apply {
-        if (isLoading)
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
-                CircularProgressIndicator()
-            }
 
-        if (error.isNotEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
-                Text(text = error)
+    LaunchedEffect(key1 = shouldStartPaginate.value) {
+        if (shouldStartPaginate.value) {
+            isLoadingMore = true
+            viewModel.getTopRatedMovies(pageNumber = (pageNumber + 1))
+        }
+    }
+    LaunchedEffect(key1 = viewModel.topRatedMovies.value) {
+        viewModel.topRatedMovies.value.apply {
+            if (isLoading) {
+                isLoadingMore = true
+            }
+            if (error.isNotEmpty()) {
+                isLoadingMore = false
+            }
+            if (data.isNotEmpty()) {
+                isLoadingMore = false
+                if (data.size < 20) {
+                    isLastPage = true
+                    scope.launch {
+                        snackbarHostState.showSnackbar("This is the last page data")
+                    }
+                }
+                pageNumber++
+                items = items + data
             }
         }
-        if (data.isNotEmpty()) {
+    }
+    LaunchedEffect(key1 = Unit) {
+        viewModel.getTopRatedMovies(pageNumber = pageNumber)
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (items.isNotEmpty()) {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2), // 2 items per row
-                contentPadding = PaddingValues(16.dp), // Optional padding
-                horizontalArrangement = Arrangement.spacedBy(8.dp), // Optional spacing between items horizontally
-                verticalArrangement = Arrangement.spacedBy(8.dp) // Optional spacing between items vertically
+                state = state,
+                columns = GridCells.Fixed(3),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(
-                    items = data,
+                    items = items,
                     key = { it.id!! }
                 ) { res ->
-                    EachRow(res = res, navController = navController, splashViewModel = splashViewModel)
+                    Box(
+                        modifier = Modifier
+                            .clickable {
+                                splashViewModel.bottomTabsVisible = false
+                                val movieJson = Uri.encode(Gson().toJson(res))
+                                navController.navigate("${Constants.MovieDetail}/$movieJson")
+                            }
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Black.copy(alpha = 0.5F))
+                            .width(100.dp)
+                            .height(250.dp)
+                    ) {
+                        Image(
+                            modifier = Modifier.fillMaxSize(),
+                            painter = rememberAsyncImagePainter(
+                                model = ImageRequest.Builder(LocalContext.current).data("${ApiService.IMAGE_URL}${res?.poster_path}")
+                                    .placeholder(R.drawable.ic_loading)
+                                    .crossfade(true)
+                                    .build()
+                            ),
+                            contentDescription = "",
+                            contentScale = ContentScale.Crop
+                        )
+                        Text(
+                            textAlign = TextAlign.Center,
+                            text = res?.original_title ?: "",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter)
+                                .background(Color.Black.copy(alpha = 0.6f)),
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                if (isLoadingMore) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (viewModel.topRatedMovies.value.isLoading) {
+                    CircularProgressIndicator()
+                } else if (viewModel.res.value.error.isNotEmpty()) {
+                    Text(text = viewModel.topRatedMovies.value.error)
                 }
             }
         }
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.TopCenter))
     }
 }
 
@@ -254,28 +351,79 @@ fun MovieScreen(
     navController: NavHostController,
     viewModel: MovieViewModel = hiltViewModel()
 ) {
-    viewModel.res.value.apply {
-        if (isLoading)
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
-                CircularProgressIndicator()
-            }
-
-        if (error.isNotEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
-                Text(text = error)
-            }
+    var pageNumber by remember { mutableStateOf(1) }
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var showGenericError by remember { mutableStateOf(false) }
+    // New state to hold all the loaded data
+    var allMovies by remember { mutableStateOf<List<Movies.Results>>(emptyList()) }
+    val listState = rememberLazyListState()
+    val shouldStartPaginate = remember {
+        derivedStateOf {
+            (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -9) >= (listState.layoutInfo.totalItemsCount - 4)
         }
-        if (data.isNotEmpty()) {
-            LazyColumn {
-                items(
-                    data,
-                    key = {
-                        it.id!!
-                    }
-                ) { res ->
-                    EachRow(res = res, navController, splashViewModel = splashViewModel)
+    }
+    LaunchedEffect(key1 = shouldStartPaginate.value) {
+        if (shouldStartPaginate.value && !isLoadingMore) {
+            isLoadingMore = true
+            pageNumber++
+            viewModel.getMovies(pageNumber = pageNumber)
+            isLoadingMore = false
+        }
+    }
+    LaunchedEffect(Unit) {
+        viewModel.getMovies(pageNumber = pageNumber)
+    }
+    viewModel.res.value.apply {
+        when {
+            isLoading && pageNumber == 1 -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
+                    CircularProgressIndicator()
                 }
             }
+            error.isNotEmpty() -> {
+                showGenericError = true
+            }
+            else -> {
+                // Append new data to the existing list
+                if (data.isNotEmpty()) {
+                    allMovies = if (pageNumber == 1) {
+                        data
+                    } else {
+                        allMovies + data
+                    }
+                }
+                showGenericError = false
+                LazyColumn(state = listState) {
+                    items(
+                        allMovies,
+                        key = {
+                            it.id!!
+                        }
+                    ) { res ->
+                        EachRow(res = res, navController, splashViewModel = splashViewModel)
+                    }
+                    if (isLoadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (showGenericError) {
+            GenericErrorScreen(onRetry = {
+                pageNumber = 1
+                allMovies = emptyList()
+                viewModel.getMovies(pageNumber = pageNumber)
+                showGenericError = false
+            })
         }
     }
 }
@@ -297,7 +445,7 @@ fun DescriptionPage(
     viewModel.movieDetail.value.apply {
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
-                CircularProgressIndicator()
+                Extensions.ShimmerDescriptionPage()
             }
         }
         if (error.isNotEmpty()) {
@@ -314,7 +462,7 @@ fun DescriptionPage(
                     painter = rememberAsyncImagePainter(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data("${ApiService.IMAGE_URL}${data?.poster_path}")
-                            .placeholder(R.drawable.ic_launcher_foreground)
+                           // .placeholder(R.drawable.ic_loading)
                             .crossfade(true)
                             .build()
                     ),
@@ -353,7 +501,7 @@ fun DescriptionPage(
                         painter = rememberAsyncImagePainter(
                             model = ImageRequest.Builder(LocalContext.current)
                                 .data("${ApiService.IMAGE_URL}${data?.poster_path}")
-                                .placeholder(R.drawable.ic_launcher_foreground)
+                               // .placeholder(R.drawable.ic_loading)
                                 .crossfade(true)
                                 // .transformations(CircleCropTransformation())
                                 .build()
@@ -363,9 +511,7 @@ fun DescriptionPage(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        style = TextStyle(
-                            fontSize = 16.sp
-                        ),
+                        style = TextStyle(fontSize = 16.sp),
                         color = Color.White,
                         text = data?.original_title ?: "",
                         textAlign = TextAlign.Center,
@@ -499,7 +645,7 @@ fun DescriptionPage(
                                             painter = rememberAsyncImagePainter(
                                                 model = ImageRequest.Builder(LocalContext.current)
                                                     .data("${ApiService.IMAGE_URL}${movie?.poster_path}")
-                                                    .placeholder(R.drawable.ic_launcher_foreground)
+                                                    //.placeholder(R.drawable.ic_loading)
                                                     .crossfade(true)
                                                     .build()
                                             ),
@@ -526,7 +672,6 @@ fun DescriptionPage(
         }
     }
 
-
 }
 
 @Composable
@@ -542,7 +687,7 @@ private fun EachRow(
                 val movieJson = Uri.encode(Gson().toJson(res))
                 navController.navigate("${Constants.MovieDetail}/$movieJson")
             }
-            .padding(8.dp),
+            .padding(3.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp
         ),
@@ -555,20 +700,21 @@ private fun EachRow(
             modifier = Modifier.fillMaxWidth()
         ) {
             Image(
+                contentScale = ContentScale.Crop,
+                contentDescription = "",
+                modifier = Modifier
+                    .width(100.dp)
+                    .fillMaxHeight(),
+                        //  .padding(10.dp)
                 painter = rememberAsyncImagePainter(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data("${ApiService.IMAGE_URL}${res.poster_path}")
-                        .placeholder(R.drawable.ic_launcher_foreground)
+                        .placeholder(R.drawable.ic_loading)
                         .crossfade(true)
-                        .transformations(CircleCropTransformation())
+                        //.transformations(CircleCropTransformation())
                         .build()
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .size(100.dp)
-                    .padding(10.dp)
+                )
             )
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -582,7 +728,7 @@ private fun EachRow(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = res.overview!!, style = TextStyle(
+                    text = res.overview!!.trim(), style = TextStyle(
                         fontSize = 12.sp
                     ),
                     textAlign = TextAlign.Justify

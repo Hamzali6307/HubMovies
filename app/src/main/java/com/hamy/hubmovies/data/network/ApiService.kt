@@ -12,10 +12,10 @@ import retrofit2.http.Query
 interface ApiService {
 
     @GET("discover/movie?api_key=$API_KEY")
-    suspend fun getMovies(): Response<Movies>
+    suspend fun getMovies(@Query("page") pageNumber:Int): Response<Movies>
 
     @GET("movie/top_rated?api_key=$API_KEY")
-    suspend fun getTopRatedMovies(): Response<Movies>
+    suspend fun getTopRatedMovies(@Query("page") pageNumber:Int): Response<Movies>
 
     @GET("movie/{movie_id}")
     suspend fun getMovieDetail(
