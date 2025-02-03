@@ -11,6 +11,7 @@ import com.hamy.hubmovies.common.doOnSuccess
 import com.hamy.hubmovies.data.model.MovieDetail
 import com.hamy.hubmovies.data.model.Movies
 import com.hamy.hubmovies.data.model.TrendingMovies
+import com.hamy.hubmovies.data.model.VideoPlayAbleLink
 import com.hamy.hubmovies.features.movies.domain.useCase.MovieUseCase
 import com.hamy.hubmovies.utils.Extensions
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,10 +25,12 @@ class MovieViewModel @Inject constructor(private val useCase: MovieUseCase) : Vi
     private val _res: MutableState<MovieState> = mutableStateOf(MovieState())
     private val _topRatedMovies: MutableState<MovieState> = mutableStateOf(MovieState())
     private val _movieDetail: MutableState<MovieDetailState> = mutableStateOf(MovieDetailState())
+    private val _movieLink : MutableState<VideoLinkState> = mutableStateOf(VideoLinkState())
     private val _trendingMovies: MutableState<TrendingMoviesState> = mutableStateOf(TrendingMoviesState())
     val topRatedMovies: State<MovieState> = _topRatedMovies
     val res: State<MovieState> = _res
     val movieDetail: State<MovieDetailState> = _movieDetail
+    val movieLink: State<VideoLinkState> = _movieLink
     val trendingMovies: State<TrendingMoviesState> = _trendingMovies
 
     fun getMovies(pageNumber:Int? = 1) {
@@ -46,6 +49,15 @@ class MovieViewModel @Inject constructor(private val useCase: MovieUseCase) : Vi
                 .doOnSuccess { movieDetail -> _movieDetail.value = MovieDetailState(data = movieDetail) }
                 .doOnFailure { _movieDetail.value = MovieDetailState(error = it?.message.toString()) }
                 .doOnLoading { _movieDetail.value = MovieDetailState(isLoading = true) }.collect()
+        }
+    }
+    fun getVideoLink(movieId: Int) {
+        viewModelScope.launch {
+            useCase.getVideoLink(movieId)
+                .filterNotNull()
+                .doOnSuccess { movieDetail -> _movieLink.value = VideoLinkState(data = movieDetail) }
+                .doOnFailure { _movieLink.value = VideoLinkState(error = it?.message.toString()) }
+                .doOnLoading { _movieLink.value = VideoLinkState(isLoading = true) }.collect()
         }
     }
     fun getTopRatedMovies(pageNumber: Int? = 1) {
@@ -81,6 +93,11 @@ data class MovieState(
 
 data class MovieDetailState(
     val data: MovieDetail = MovieDetail(),
+    val error: String = "",
+    val isLoading: Boolean = false
+)
+data class VideoLinkState(
+    val data: VideoPlayAbleLink = VideoPlayAbleLink(),
     val error: String = "",
     val isLoading: Boolean = false
 )

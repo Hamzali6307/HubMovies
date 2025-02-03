@@ -3,6 +3,7 @@ package com.hamy.hubmovies.data.network
 import com.hamy.hubmovies.data.model.MovieDetail
 import com.hamy.hubmovies.data.model.Movies
 import com.hamy.hubmovies.data.model.TrendingMovies
+import com.hamy.hubmovies.data.model.VideoPlayAbleLink
 import com.hamy.hubmovies.utils.Constants.API_KEY
 import retrofit2.Response
 import retrofit2.http.GET
@@ -16,6 +17,9 @@ interface ApiService {
 
     @GET("movie/top_rated?api_key=$API_KEY")
     suspend fun getTopRatedMovies(@Query("page") pageNumber:Int): Response<Movies>
+
+    @GET("movie/{movie_id}/videos?api_key=$API_KEY")
+    suspend fun getVideoPlayAbleLink(@Path("movie_id") movieId: Int): Response<VideoPlayAbleLink>
 
     @GET("movie/{movie_id}")
     suspend fun getMovieDetail(

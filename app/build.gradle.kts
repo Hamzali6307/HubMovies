@@ -102,9 +102,12 @@ dependencies {
     //splash
     implementation(libs.androidx.core.splashscreen)
     //loading button
-
     implementation(libs.gson)
+    implementation (libs.core)
+    implementation (libs.androidx.material.icons.extended)
 
+    implementation(libs.firebase.bom)
+    implementation(libs.firebase.auth)
 
 
 
