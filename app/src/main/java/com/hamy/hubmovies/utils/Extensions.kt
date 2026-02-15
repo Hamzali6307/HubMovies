@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,6 +46,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -61,12 +63,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextAlign.Companion.Center
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -296,6 +300,7 @@ object Extensions {
             Spacer(modifier = Modifier.height(8.dp))
             LazyRow(
                 modifier = Modifier
+                    .defaultMinSize(100.dp,250.dp)
                     .fillMaxWidth()
                     .padding(5.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -359,6 +364,60 @@ object Extensions {
             size = it.size
         }
     }
+
+    @Composable
+    fun ExpandableText(
+        text: String,
+        collapsedMaxLines: Int = 3
+    ) {
+        var isExpanded by remember { mutableStateOf(false) }
+        var isTextOverflowing by remember { mutableStateOf(false) }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally)
+        {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.1f), shape = RoundedCornerShape(10.dp))
+            ) {
+                Text(
+                    modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    text = text,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    maxLines = if (isExpanded) Int.MAX_VALUE else collapsedMaxLines,
+                    overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { result ->
+                        if (!isExpanded) {
+                            isTextOverflowing = result.hasVisualOverflow
+                        }
+                    }
+                )
+            }
+
+
+            if (isTextOverflowing) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = if (isExpanded) "Read Less" else "Read More",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier
+                            .background(Color.White, shape = CircleShape)
+                            .clickable { isExpanded = !isExpanded }
+                            .padding(horizontal = 8.dp, vertical = 4.dp) // background padding
+                    )
+                }
+            }
+        }
+    }
+
 
     @Composable
     fun mBackPressHandle(
