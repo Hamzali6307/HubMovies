@@ -25,7 +25,7 @@ fun <T, R> ApiState<T>.map(transform: (T) -> R): ApiState<R> {
     }
 }
 
-fun <T> Flow<ApiState<T>>.doOnSuccess(action: suspend (T) -> Unit): Flow<ApiState<T>> =
+fun <T> Flow<ApiState<T>>. doOnSuccess(action: suspend (T) -> Unit): Flow<ApiState<T>> =
     transform { value ->
         if (value is ApiState.Success) {
             action(value.data)

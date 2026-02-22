@@ -5,16 +5,17 @@ plugins {
     alias(libs.plugins.hiltAndroid)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinKapt)
+    alias(libs.plugins.google.services)
 }
 
 android {
     namespace = "com.hamy.hubmovies"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.hamy.hubmovies"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -48,7 +49,11 @@ android {
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+           // excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes.add("META-INF/DEPENDENCIES")
+            pickFirsts.add("META-INF/INDEX.LIST")
+            merges.add("META-INF/NOTICE.md")
+            merges.add("META-INF/LICENSE.md")
         }
     }
 }
@@ -63,6 +68,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.volley)
+    implementation(libs.firebase.appdistribution.gradle)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -95,7 +102,13 @@ dependencies {
     implementation(libs.coil.compose)
     //splash
     implementation(libs.androidx.core.splashscreen)
+    //loading button
+    implementation(libs.gson)
+    implementation (libs.core)
+    implementation (libs.androidx.material.icons.extended)
 
-
-
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.analytics)
+    implementation("com.google.firebase:firebase-auth-ktx:23.0.0")
 }
