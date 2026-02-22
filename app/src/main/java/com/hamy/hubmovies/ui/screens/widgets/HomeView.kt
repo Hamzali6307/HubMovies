@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -81,6 +82,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -93,6 +95,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import coil.transform.CircleCropTransformation
 import com.google.gson.Gson
 import com.hamy.hubmovies.R
 import com.hamy.hubmovies.data.model.Movies
@@ -118,16 +121,13 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
     Scaffold(
         topBar = {
             if (splashViewModel.bottomTabsVisible) {
-                TopAppBar(
-                    title = { Text("HubMovie's") },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            scope.launch { drawerState.open() }
-                        }) {
-                            Icon(Icons.Filled.Menu, contentDescription = "Menu")
-                        }
+                TopAppBar(title = { Text("HubMovie's") }, navigationIcon = {
+                    IconButton(onClick = {
+                        scope.launch { drawerState.open() }
+                    }) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Menu")
                     }
-                )
+                })
             }
         },
 
@@ -137,12 +137,15 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = navBackStackEntry?.destination?.route
                     listOf(
-                        Home,
-                        BottomNavItem.Profile,
-                        BottomNavItem.Settings
+                        Home, BottomNavItem.Profile, BottomNavItem.Settings
                     ).forEach { item ->
                         NavigationBarItem(
-                            icon = { Icon(item.icon, contentDescription = item.title) },
+                            icon = {
+                                Icon(
+                                    item.icon,
+                                    contentDescription = item.title
+                                )
+                            },
                             label = { Text(item.title) },
                             selected = currentRoute == item.screenRoute,
                             onClick = {
@@ -155,8 +158,7 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
                                     launchSingleTop = true
                                     restoreState = true
                                 }
-                            }
-                        )
+                            })
                     }
                 }
             }
@@ -168,9 +170,7 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
 
 
 sealed class BottomNavItem(
-    val icon: ImageVector,
-    val title: String,
-    val screenRoute: String
+    val icon: ImageVector, val title: String, val screenRoute: String
 ) {
     data object Home : BottomNavItem(Icons.Filled.Home, "Latest", "home")
     data object Profile : BottomNavItem(Icons.Filled.Person, "Top Rated", "profile")
@@ -192,8 +192,7 @@ fun Navigation(
         composable(Home.screenRoute) { MovieScreen(splashViewModel, navController) }
         composable(BottomNavItem.Profile.screenRoute) {
             ProfileScreen(
-                splashViewModel,
-                navController
+                splashViewModel, navController
             )
         }
         composable(BottomNavItem.Settings.screenRoute) { SettingsScreen(LocalContext.current) }
@@ -275,9 +274,7 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(
-                    items = items,
-                    key = { it.id!! }
-                ) { res ->
+                    items = items, key = { it.id!! }) { res ->
                     Box(
                         modifier = Modifier
                             .clickable {
@@ -288,19 +285,13 @@ fun ProfileScreen(
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color.Black.copy(alpha = 0.5F))
                             .width(100.dp)
-                            .height(250.dp)
-                    ) {
+                            .height(250.dp)) {
                         Image(
-                            modifier = Modifier.fillMaxSize(),
-                            painter = rememberAsyncImagePainter(
+                            modifier = Modifier.fillMaxSize(), painter = rememberAsyncImagePainter(
                                 model = ImageRequest.Builder(LocalContext.current)
                                     .data("${ApiService.IMAGE_URL}${res?.poster_path}")
-                                    .placeholder(R.drawable.ic_loading)
-                                    .crossfade(true)
-                                    .build()
-                            ),
-                            contentDescription = "",
-                            contentScale = ContentScale.Crop
+                                    .placeholder(R.drawable.ic_loading).crossfade(true).build()
+                            ), contentDescription = "", contentScale = ContentScale.Crop
                         )
                         Text(
                             textAlign = TextAlign.Center,
@@ -346,14 +337,12 @@ fun SettingsScreen(context: Context) {
         arrayListOf("Privacy", "About us", "Version 1.0").let { list ->
             items(list.size) { index ->
                 Text(
-                    text = list[index],
-                    modifier = Modifier
+                    text = list[index], modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
                             Extensions.mToast("Clicked: " + list[index], context)
                         }
-                        .padding(16.dp)
-                )
+                        .padding(16.dp))
                 if (index < list.size - 1) {
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -419,11 +408,9 @@ fun MovieScreen(
                 showGenericError = false
                 LazyColumn(state = listState) {
                     items(
-                        allMovies,
-                        key = {
+                        allMovies, key = {
                             it.id!!
-                        }
-                    ) { res ->
+                        }) { res ->
                         EachRow(res = res, navController, splashViewModel = splashViewModel)
                     }
                     if (isLoadingMore) {
@@ -489,8 +476,7 @@ fun DescriptionPage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data("${ApiService.IMAGE_URL}${data?.poster_path}")
                             // .placeholder(R.drawable.ic_loading)
-                            .crossfade(true)
-                            .build()
+                            .crossfade(true).build()
                     ),
                     contentDescription = "",
                     contentScale = ContentScale.Crop
@@ -499,8 +485,7 @@ fun DescriptionPage(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
                     Column(
@@ -512,8 +497,7 @@ fun DescriptionPage(
                                 .fillMaxWidth()
                                 .clickable {
 
-                                }
-                        ) {
+                                }) {
                             IconButton(
                                 onClick = { navController.popBackStack() },
                                 modifier = Modifier
@@ -641,8 +625,7 @@ fun DescriptionPage(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(
-                                            horizontal = 16.dp,
-                                            vertical = 8.dp
+                                            horizontal = 16.dp, vertical = 8.dp
                                         ), // optional padding for row
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
@@ -652,14 +635,15 @@ fun DescriptionPage(
                                         color = Color.Gray,
                                         style = MaterialTheme.typography.labelMedium,
                                         modifier = Modifier
-                                            .background(Color.Yellow, shape = CircleShape)
+                                            .background(
+                                                Color.Yellow, shape = CircleShape
+                                            )
                                             .clickable {
                                                 showVideoPlayer = true
                                                 videoId = data.id ?: 0
                                             }
                                             .padding(
-                                                horizontal = 12.dp,
-                                                vertical = 6.dp
+                                                horizontal = 12.dp, vertical = 6.dp
                                             ) // background padding
                                     )
                                     Text(
@@ -667,14 +651,15 @@ fun DescriptionPage(
                                         color = Color.White,
                                         style = MaterialTheme.typography.labelMedium,
                                         modifier = Modifier
-                                            .background(Color.Red, shape = CircleShape)
+                                            .background(
+                                                Color.Red, shape = CircleShape
+                                            )
                                             .clickable {
                                                 showVideoPlayer = true
                                                 videoId = data.id ?: 0
                                             }
                                             .padding(
-                                                horizontal = 12.dp,
-                                                vertical = 6.dp
+                                                horizontal = 12.dp, vertical = 6.dp
                                             ) // background padding
                                     )
                                 }
@@ -730,8 +715,7 @@ fun DescriptionPage(
                                                     model = ImageRequest.Builder(LocalContext.current)
                                                         .data("${ApiService.IMAGE_URL}${movie?.poster_path}")
                                                         //.placeholder(R.drawable.ic_loading)
-                                                        .crossfade(true)
-                                                        .build()
+                                                        .crossfade(true).build()
                                                 ),
                                                 contentDescription = "",
                                                 contentScale = ContentScale.Crop
@@ -772,8 +756,7 @@ fun LoadVideo(navController: NavHostController, viewModel: MovieViewModel, id: I
     viewModel.movieLink.value.apply {
         if (isLoading) {
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Center
+                modifier = Modifier.fillMaxSize(), contentAlignment = Center
             ) {
                 CircularProgressIndicator()
             }
@@ -802,9 +785,9 @@ fun LoadVideo(navController: NavHostController, viewModel: MovieViewModel, id: I
 
 @Composable
 private fun EachRow(
-    res: Movies.Results, navController: NavHostController,
-    splashViewModel: MainActivityViewModel
+    res: Movies.Results, navController: NavHostController, splashViewModel: MainActivityViewModel
 ) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -813,15 +796,11 @@ private fun EachRow(
                 val movieJson = Uri.encode(Gson().toJson(res))
                 navController.navigate("${Constants.MovieDetail}/$movieJson")
             }
-            .padding(3.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        shape = RoundedCornerShape(8.dp)
-    ) {
+            .padding(3.dp), elevation = CardDefaults.cardElevation(
+        defaultElevation = 2.dp
+    ), colors = CardDefaults.cardColors(
+        containerColor = Color.White
+    ), shape = RoundedCornerShape(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -830,14 +809,12 @@ private fun EachRow(
                 contentDescription = "",
                 modifier = Modifier
                     .width(100.dp)
-                    .fillMaxHeight(),
-                //  .padding(10.dp)
+                    .height(150.dp),
                 painter = rememberAsyncImagePainter(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data("${ApiService.IMAGE_URL}${res.poster_path}")
-                        .placeholder(R.drawable.ic_loading)
-                        .crossfade(true)
-                        //.transformations(CircleCropTransformation())
+                        .placeholder(R.drawable.ic_loading).crossfade(true)
+                        // .transformations(CircleCropTransformation())
                         .build()
                 )
             )
@@ -848,17 +825,61 @@ private fun EachRow(
                     .align(CenterVertically)
             ) {
                 Text(
+                    color = Color.Black,
                     text = res.original_title!!, style = TextStyle(
                         fontSize = 16.sp
-                    ),
-                    textAlign = TextAlign.Center
+                    ), textAlign = TextAlign.Justify
                 )
-                Text(
-                    text = res.overview!!.trim(), style = TextStyle(
-                        fontSize = 12.sp
-                    ),
-                    textAlign = TextAlign.Justify
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
                 )
+                {
+                    var isExpanded by remember { mutableStateOf(false) }
+                    var isTextOverflowing by remember { mutableStateOf(false) }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+
+                            text = res.overview!!.trim(),
+                            color = Color.Black,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            maxLines = if (isExpanded) Int.MAX_VALUE else 3,
+                            overflow = TextOverflow.Ellipsis,
+                            onTextLayout = { result ->
+                                if (!isExpanded) {
+                                    isTextOverflowing = result.hasVisualOverflow
+                                }
+                            }
+                        )
+                    }
+
+
+                    if (isTextOverflowing) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                text = if (isExpanded) "Read Less" else "Read More",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier
+                                    .background(Color.Gray, shape = CircleShape)
+                                    .clickable { isExpanded = !isExpanded }
+                                    .padding(
+                                        horizontal = 8.dp,
+                                        vertical = 4.dp
+                                    )
+                            )
+                        }
+                    }
+                }
             }
         }
     }

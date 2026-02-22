@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.hamy.hubmovies" />
+                  <option name="mobileSdkAppId" value="1:350941968561:android:b47ad96144dbfd704e8a90" />
+                  <option name="projectId" value="composemovieflow" />
+                  <option name="projectNumber" value="350941968561" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

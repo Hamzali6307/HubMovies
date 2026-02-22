@@ -1,7 +1,10 @@
+
 package com.hamy.hubmovies.ui.screens.activity
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Patterns
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,7 +27,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,15 +39,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -58,11 +66,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.auth.FirebaseAuth
 import com.hamy.hubmovies.R
 import com.hamy.hubmovies.ui.screens.widgets.MainScreen
 import com.hamy.hubmovies.ui.theme.HubMoviesTheme
 import com.hamy.hubmovies.utils.Constants
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 open class MainActivity : ComponentActivity() {
@@ -86,11 +96,11 @@ open class MainActivity : ComponentActivity() {
                             .background(Color.LightGray) // Optional fallback background color
                     ) {
                         val image: Painter =
-                            painterResource(id = R.drawable.bg) // Reference your drawable image here
+                            painterResource(id = R.drawable.back) // Reference your drawable image here
                         Image(
                             painter = image,
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().blur(radius = 10.dp),
                             contentScale = ContentScale.Crop // Scales the image to cover the box area
                         )
                     }
@@ -103,13 +113,17 @@ open class MainActivity : ComponentActivity() {
 
 @Composable
 fun SignUpScreen(navController: NavController) {
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPassword by remember { mutableStateOf("") }
-    var showUsernameError by remember { mutableStateOf(false) }
+    var showEmailError by remember { mutableStateOf(false) }
     var showPasswordError by remember { mutableStateOf(false) }
     var showConfirmPasswordError by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val authManager = remember { AuthManager() }
+    val context = LocalContext.current
 
     Scaffold { padding ->
         Box(
@@ -120,11 +134,11 @@ fun SignUpScreen(navController: NavController) {
                 .background(Color.LightGray) // Optional fallback background color
         ) {
             val image: Painter =
-                painterResource(id = R.drawable.bg) // Reference your drawable image here
+                painterResource(id = R.drawable.back) // Reference your drawable image here
             Image(
                 painter = image,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().blur(radius = 10.dp),
                 contentScale = ContentScale.Crop // Scales the image to cover the box area
             )
         }
@@ -137,7 +151,7 @@ fun SignUpScreen(navController: NavController) {
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Circular Image with Border",
                 modifier = Modifier
-                    .size(200.dp) // Adjust the size as needed
+                    .size(100.dp) // Adjust the size as needed
                     .clip(CircleShape)
                     .border(2.dp, Color.Black) // Add a black border of 2 dp
             )
@@ -149,7 +163,7 @@ fun SignUpScreen(navController: NavController) {
                     .padding(30.dp, 0.dp, 0.dp, 10.dp),
                 text = "SignUp",
                 fontSize = TextUnit(30f, TextUnitType.Sp),
-                color = Color.Black,
+                color = Color.White,
                 style = MaterialTheme.typography.labelLarge
             )
 
@@ -160,17 +174,17 @@ fun SignUpScreen(navController: NavController) {
                     .padding(30.dp, 0.dp, 30.dp, 10.dp),
 
                 singleLine = true,
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                isError = showUsernameError
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                isError = showEmailError
             )
-            if (showUsernameError) {
+            if (showEmailError) {
                 Text(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(30.dp, 0.dp, 0.dp, 0.dp),
-                    text = "Username cannot beempty",
+                    text = "Invalid email address",
                     color = Color.Red,
                     style = MaterialTheme.typography.labelSmall
                 )
@@ -201,7 +215,7 @@ fun SignUpScreen(navController: NavController) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(30.dp, 0.dp, 0.dp, 0.dp),
-                    text = "Password cannot be empty",
+                    text = "Password must be at least 6 characters",
                     color = Color.Red,
                     style = MaterialTheme.typography.labelSmall
                 )
@@ -242,21 +256,42 @@ fun SignUpScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(30.dp, 0.dp, 30.dp, 10.dp),
-                colors = ButtonColors(
+                colors = ButtonDefaults.buttonColors(
                     containerColor = colorResource(id = R.color.btn_back),
                     contentColor = Color.White,
-                    disabledContainerColor = Color.LightGray,
-                    disabledContentColor = Color.DarkGray
                 ),
+                enabled = !isLoading,
                 onClick = {
-                    showUsernameError = username.isBlank()
-                    showPasswordError = password.isBlank()
+                    showEmailError = !Patterns.EMAIL_ADDRESS.matcher(email).matches()
+                    showPasswordError = password.length < 6
                     showConfirmPasswordError = password != confirmPassword
-                    if (!showUsernameError && !showPasswordError && !showConfirmPasswordError) {
-                        // Perform signup logic here
+                    if (!showEmailError && !showPasswordError && !showConfirmPasswordError) {
+                        coroutineScope.launch {
+                            isLoading = true
+                            try {
+                                val successful = authManager.createUser(email, password)
+                                if (successful) {
+                                    navController.navigate(Constants.MainPage) {
+                                        popUpTo(Constants.Login) { inclusive = true }
+                                        popUpTo(Constants.Signup) { inclusive = true }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Sign up failed", Toast.LENGTH_SHORT).show()
+                                }
+                            } finally {
+                                isLoading = false
+                            }
+                        }
                     }
                 }) {
-                Text("Sign Up")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Sign Up")
+                }
             }
             Text(
                 modifier = Modifier.clickable {
@@ -265,7 +300,7 @@ fun SignUpScreen(navController: NavController) {
                     }
                 },
                 text = "Already Have Account!",
-                color = Color.Black,
+                color = Color.White,
                 style = MaterialTheme.typography.labelMedium
             )
         }
@@ -275,11 +310,15 @@ fun SignUpScreen(navController: NavController) {
 fun LoginScreen(
     navController: NavController
 ) {
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var showUsernameError by remember { mutableStateOf(false) }
+    var showEmailError by remember { mutableStateOf(false) }
     var showPasswordError by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val authManager = remember { AuthManager() }
+    val context = LocalContext.current
 
     Scaffold { padding ->
         Box(
@@ -290,11 +329,13 @@ fun LoginScreen(
                 .background(Color.LightGray) // Optional fallback background color
         ) {
             val image: Painter =
-                painterResource(id = R.drawable.bg) // Reference your drawable image here
+                painterResource(id = R.drawable.back) // Reference your drawable image here
             Image(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(radius = 10.dp),
                 painter = image,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop // Scales the image to cover the box area
             )
         }
@@ -307,9 +348,8 @@ fun LoginScreen(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Circular Image with Border",
                 modifier = Modifier
-                    .size(200.dp) // Adjust the size as needed
-                    .clip(CircleShape)
-
+                    .size(100.dp) // Adjust the size as needed
+                    .clip(RectangleShape)
                     .border(2.dp, Color.Black) // Add a black border of 2 dp
             )
             Spacer(modifier = Modifier.height(30.dp))
@@ -320,7 +360,7 @@ fun LoginScreen(
                     .padding(30.dp, 0.dp, 0.dp, 10.dp),
                 text = "Login",
                 fontSize = TextUnit(30f, TextUnitType.Sp),
-                color = Color.Black,
+                color = Color.White,
                 style = MaterialTheme.typography.labelLarge
             )
 
@@ -329,18 +369,18 @@ fun LoginScreen(
                     .focusRequester(FocusRequester())
                     .fillMaxWidth()
                     .padding(30.dp, 0.dp, 30.dp, 10.dp),
-                value = username,
+                value = email,
                 singleLine = true,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                isError = showUsernameError
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                isError = showEmailError
             )
-            if (showUsernameError) {
+            if (showEmailError) {
                 Text(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(30.dp, 0.dp, 0.dp, 0.dp),
-                    text = "Username can not be empty",
+                    text = "Invalid email address",
                     color = Color.Red,
                     style = MaterialTheme.typography.labelSmall
                 )
@@ -371,7 +411,7 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(30.dp, 0.dp, 0.dp, 0.dp),
-                    text = "Password can not be empty",
+                    text = "Password cannot be empty",
                     color = Color.Red,
                     style = MaterialTheme.typography.labelSmall
                 )
@@ -380,22 +420,40 @@ fun LoginScreen(
             Button(modifier = Modifier
                 .fillMaxWidth()
                 .padding(30.dp, 0.dp, 30.dp, 10.dp),
-                colors = ButtonColors(
+                colors = ButtonDefaults.buttonColors(
                     containerColor = colorResource(id = R.color.btn_back),
-                    contentColor = Color.White,
-                    disabledContainerColor = Color.LightGray,
-                    disabledContentColor = Color.DarkGray
+                    contentColor = Color.White
                 ),
+                enabled = !isLoading,
                 onClick = {
-                    showUsernameError = username.isBlank()
+                    showEmailError = !Patterns.EMAIL_ADDRESS.matcher(email).matches()
                     showPasswordError = password.isBlank()
-                    if (!showUsernameError && !showPasswordError) {
-                        navController.navigate(Constants.MainPage) {
-                            popUpTo(Constants.Login) { inclusive = true }
+                    if (!showEmailError && !showPasswordError) {
+                        coroutineScope.launch {
+                            isLoading = true
+                            try {
+                                val successful = authManager.signIn(email, password)
+                                if (successful) {
+                                    navController.navigate(Constants.MainPage) {
+                                        popUpTo(Constants.Login) { inclusive = true }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Login failed", Toast.LENGTH_SHORT).show()
+                                }
+                            } finally {
+                                isLoading = false
+                            }
                         }
                     }
                 }) {
-                Text("Login")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Login")
+                }
             }
             Text(
                 modifier = Modifier.clickable {
@@ -404,7 +462,7 @@ fun LoginScreen(
                     }
                 },
                 text = "Register Account!",
-                color = Color.Black,
+                color = Color.White,
                 style = MaterialTheme.typography.labelMedium
             )
         }
@@ -413,8 +471,11 @@ fun LoginScreen(
 
 @Composable
 fun AppNavigation(navController: NavHostController, splashViewModel: MainActivityViewModel) {
+    val auth = FirebaseAuth.getInstance()
+    val startDestination = if (auth.currentUser != null) Constants.MainPage else Constants.Login
+
     navController.apply {
-        NavHost(navController = this, startDestination = Constants.Login ) {
+        NavHost(navController = this, startDestination = startDestination) {
             composable(Constants.Login) { LoginScreen(this@apply) }  // Start with LoginScreen
             composable(Constants.Signup) { SignUpScreen(this@apply) }  // Start with LoginScreen
             composable(Constants.MainPage) { MainScreen(this@apply,splashViewModel) }  // Navigate to MainScreen

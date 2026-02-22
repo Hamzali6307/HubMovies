@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.hiltAndroid)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinKapt)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -108,7 +109,6 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
-
-
-
+    implementation(libs.firebase.analytics)
+    implementation("com.google.firebase:firebase-auth-ktx:23.0.0")
 }

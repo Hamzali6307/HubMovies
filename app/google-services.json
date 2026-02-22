@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "350941968561",
+    "project_id": "composemovieflow",
+    "storage_bucket": "composemovieflow.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:350941968561:android:b47ad96144dbfd704e8a90",
+        "android_client_info": {
+          "package_name": "com.hamy.hubmovies"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB63_aL494dUj0LZOFpS8-D6KnHwxc6jYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
