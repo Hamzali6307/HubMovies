@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,13 +35,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -52,12 +57,18 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -80,12 +91,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -100,6 +115,7 @@ import com.google.gson.Gson
 import com.hamy.hubmovies.R
 import com.hamy.hubmovies.data.model.Movies
 import com.hamy.hubmovies.data.network.ApiService
+import com.hamy.hubmovies.ui.screens.activity.AuthManager
 import com.hamy.hubmovies.ui.screens.activity.MainActivityViewModel
 import com.hamy.hubmovies.ui.screens.widgets.BottomNavItem.Home
 import com.hamy.hubmovies.ui.viewModel.MovieViewModel
@@ -116,55 +132,145 @@ import kotlinx.coroutines.launch
 fun MainScreen(navController: NavHostController, splashViewModel: MainActivityViewModel) {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val navController = rememberNavController()
+    val innerNavController = rememberNavController()
+    var searchText by remember { mutableStateOf("") }
+    var isSearching by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
-    Scaffold(
-        topBar = {
-            if (splashViewModel.bottomTabsVisible) {
-                TopAppBar(title = { Text("HubMovie's") }, navigationIcon = {
-                    IconButton(onClick = {
-                        scope.launch { drawerState.open() }
-                    }) {
-                        Icon(Icons.Filled.Menu, contentDescription = "Menu")
-                    }
-                })
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = splashViewModel.bottomTabsVisible,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Hub Movies",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                HorizontalDivider()
+                NavigationDrawerItem(
+                    label = { Text("Home") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        innerNavController.navigate(Home.screenRoute)
+                    },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = null) }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Profile") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        innerNavController.navigate(BottomNavItem.Profile.screenRoute)
+                    },
+                    icon = { Icon(Icons.Filled.Person, contentDescription = null) }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Settings") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        innerNavController.navigate(BottomNavItem.Settings.screenRoute)
+                    },
+                    icon = { Icon(Icons.Filled.Settings, contentDescription = null) }
+                )
             }
-        },
-
-        bottomBar = {
-            if (splashViewModel.bottomTabsVisible) {
-                NavigationBar {
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentRoute = navBackStackEntry?.destination?.route
-                    listOf(
-                        Home, BottomNavItem.Profile, BottomNavItem.Settings
-                    ).forEach { item ->
-                        NavigationBarItem(
-                            icon = {
-                                Icon(
-                                    item.icon,
-                                    contentDescription = item.title
-                                )
-                            },
-                            label = { Text(item.title) },
-                            selected = currentRoute == item.screenRoute,
-                            onClick = {
-                                navController.navigate(item.screenRoute) {
-                                    navController.graph.startDestinationRoute?.let { screenRoute ->
-                                        popUpTo(screenRoute) {
-                                            saveState = true
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                if (splashViewModel.bottomTabsVisible) {
+                    TopAppBar(
+                        title = {
+                            if (isSearching) {
+                                TextField(
+                                    value = searchText,
+                                    onValueChange = { searchText = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = { Text("Search movies...") },
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        disabledContainerColor = Color.Transparent,
+                                        focusedIndicatorColor = Color.Transparent,
+                                        unfocusedIndicatorColor = Color.Transparent,
+                                    ),
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                    keyboardActions = KeyboardActions(onSearch = {
+                                        focusManager.clearFocus()
+                                    }),
+                                    trailingIcon = {
+                                        IconButton(onClick = {
+                                            searchText = ""
+                                            isSearching = false
+                                        }) {
+                                            Icon(Icons.Filled.Close, contentDescription = "Close Search")
                                         }
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                )
+                            } else {
+                                Text("HubMovie's")
+                            }
+                        },
+                        navigationIcon = {
+                            if (!isSearching) {
+                                IconButton(onClick = {
+                                    scope.launch { drawerState.open() }
+                                }) {
+                                    Icon(Icons.Filled.Menu, contentDescription = "Menu")
                                 }
-                            })
+                            }
+                        },
+                        actions = {
+                            if (!isSearching) {
+                                IconButton(onClick = { isSearching = true }) {
+                                    Icon(Icons.Filled.Search, contentDescription = "Search")
+                                }
+                            }
+                        }
+                    )
+                }
+            },
+
+            bottomBar = {
+                if (splashViewModel.bottomTabsVisible) {
+                    NavigationBar {
+                        val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
+                        val currentRoute = navBackStackEntry?.destination?.route
+                        listOf(
+                            Home, BottomNavItem.Profile, BottomNavItem.Settings
+                        ).forEach { item ->
+                            NavigationBarItem(
+                                icon = {
+                                    Icon(
+                                        item.icon,
+                                        contentDescription = item.title
+                                    )
+                                },
+                                label = { Text(item.title) },
+                                selected = currentRoute == item.screenRoute,
+                                onClick = {
+                                    innerNavController.navigate(item.screenRoute) {
+                                        innerNavController.graph.startDestinationRoute?.let { screenRoute ->
+                                            popUpTo(screenRoute) {
+                                                saveState = true
+                                            }
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                })
+                        }
                     }
                 }
-            }
-        },
-    ) { innerPadding ->
-        Navigation(navController, innerPadding, splashViewModel)
+            },
+        ) { innerPadding ->
+            Navigation(innerNavController, innerPadding, splashViewModel, searchText, navController)
+        }
     }
 }
 
@@ -182,20 +288,22 @@ sealed class BottomNavItem(
 fun Navigation(
     navController: NavHostController,
     innerPadding: PaddingValues,
-    splashViewModel: MainActivityViewModel
+    splashViewModel: MainActivityViewModel,
+    searchQuery: String = "",
+    rootNavController: NavController
 ) {
     NavHost(
         navController = navController,
         startDestination = Home.screenRoute,
         modifier = Modifier.padding(innerPadding)
     ) {
-        composable(Home.screenRoute) { MovieScreen(splashViewModel, navController) }
+        composable(Home.screenRoute) { MovieScreen(splashViewModel, navController, searchQuery = searchQuery) }
         composable(BottomNavItem.Profile.screenRoute) {
             ProfileScreen(
-                splashViewModel, navController
+                splashViewModel, navController, searchQuery = searchQuery
             )
         }
-        composable(BottomNavItem.Settings.screenRoute) { SettingsScreen(LocalContext.current) }
+        composable(BottomNavItem.Settings.screenRoute) { SettingsScreen(LocalContext.current, rootNavController) }
         composable(
             route = "${Constants.MovieDetail}/{movie}",
             arguments = listOf(navArgument("movie") { type = NavType.StringType })
@@ -218,7 +326,8 @@ fun Navigation(
 fun ProfileScreen(
     splashViewModel: MainActivityViewModel,
     navController: NavHostController,
-    viewModel: MovieViewModel = hiltViewModel()
+    viewModel: MovieViewModel = hiltViewModel(),
+    searchQuery: String = ""
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -257,15 +366,23 @@ fun ProfileScreen(
                     }
                 }
                 pageNumber++
-                items = items + data
+                // Fix duplicate keys by using distinctBy
+                items = (items + data).distinctBy { it.id }
             }
         }
     }
     LaunchedEffect(key1 = Unit) {
         viewModel.getTopRatedMovies(pageNumber = pageNumber)
     }
+
+    val filteredItems = if (searchQuery.isEmpty()) {
+        items
+    } else {
+        items.filter { it.original_title?.contains(searchQuery, ignoreCase = true) == true }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        if (items.isNotEmpty()) {
+        if (filteredItems.isNotEmpty()) {
             LazyVerticalGrid(
                 state = state,
                 columns = GridCells.Fixed(3),
@@ -274,7 +391,7 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(
-                    items = items, key = { it.id!! }) { res ->
+                    items = filteredItems, key = { it.id!! }) { res ->
                     Box(
                         modifier = Modifier
                             .clickable {
@@ -305,7 +422,7 @@ fun ProfileScreen(
                         )
                     }
                 }
-                if (isLoadingMore) {
+                if (isLoadingMore && searchQuery.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier
@@ -324,6 +441,8 @@ fun ProfileScreen(
                     CircularProgressIndicator()
                 } else if (viewModel.res.value.error.isNotEmpty()) {
                     Text(text = viewModel.topRatedMovies.value.error)
+                } else if (searchQuery.isNotEmpty()) {
+                    Text(text = "No movies found for \"$searchQuery\"")
                 }
             }
         }
@@ -332,14 +451,25 @@ fun ProfileScreen(
 }
 
 @Composable
-fun SettingsScreen(context: Context) {
+fun SettingsScreen(context: Context, rootNavController: NavController) {
+    val authManager = remember { AuthManager() }
+    val coroutineScope = rememberCoroutineScope()
+
     LazyColumn {
-        arrayListOf("Privacy", "About us", "Version 1.0").let { list ->
+        arrayListOf("Privacy", "About us", "Version 1.0", "Logout").let { list ->
             items(list.size) { index ->
                 Text(
                     text = list[index], modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
+                            coroutineScope.launch {
+                                if (list[index] == "Logout") {
+                                    authManager.logout()
+                                    rootNavController.navigate(Constants.Login) {
+                                        popUpTo(Constants.MainPage) { inclusive = true }
+                                    }
+                                }
+                            }
                             Extensions.mToast("Clicked: " + list[index], context)
                         }
                         .padding(16.dp))
@@ -359,7 +489,8 @@ fun SettingsScreen(context: Context) {
 fun MovieScreen(
     splashViewModel: MainActivityViewModel,
     navController: NavHostController,
-    viewModel: MovieViewModel = hiltViewModel()
+    viewModel: MovieViewModel = hiltViewModel(),
+    searchQuery: String = ""
 ) {
     var pageNumber by remember { mutableStateOf(1) }
     var isLoadingMore by remember { mutableStateOf(false) }
@@ -374,7 +505,7 @@ fun MovieScreen(
         }
     }
     LaunchedEffect(key1 = shouldStartPaginate.value) {
-        if (shouldStartPaginate.value && !isLoadingMore) {
+        if (shouldStartPaginate.value && !isLoadingMore && searchQuery.isEmpty()) {
             isLoadingMore = true
             pageNumber++
             viewModel.getMovies(pageNumber = pageNumber)
@@ -384,6 +515,13 @@ fun MovieScreen(
     LaunchedEffect(Unit) {
         viewModel.getMovies(pageNumber = pageNumber)
     }
+
+    val filteredMovies = if (searchQuery.isEmpty()) {
+        allMovies
+    } else {
+        allMovies.filter { it.original_title?.contains(searchQuery, ignoreCase = true) == true }
+    }
+
     viewModel.res.value.apply {
         when {
             isLoading && pageNumber == 1 -> {
@@ -397,32 +535,37 @@ fun MovieScreen(
             }
 
             else -> {
-                // Append new data to the existing list
+                // Append new data to the existing list and fix duplicate keys
                 if (data.isNotEmpty()) {
-                    allMovies = if (pageNumber == 1) {
-                        data
-                    } else {
-                        allMovies + data
-                    }
+                    allMovies = (allMovies + data).distinctBy { it.id }
                 }
                 showGenericError = false
-                LazyColumn(state = listState) {
-                    items(
-                        allMovies, key = {
-                            it.id!!
-                        }) { res ->
-                        EachRow(res = res, navController, splashViewModel = splashViewModel)
-                    }
-                    if (isLoadingMore) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Center
-                            ) {
-                                CircularProgressIndicator()
+                
+                if (filteredMovies.isNotEmpty()) {
+                    LazyColumn(state = listState) {
+                        items(
+                            filteredMovies, key = {
+                                it.id!!
+                            }) { res ->
+                            EachRow(res = res, navController, splashViewModel = splashViewModel)
+                        }
+                        if (isLoadingMore && searchQuery.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
                             }
+                        }
+                    }
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
+                        if (searchQuery.isNotEmpty()) {
+                            Text(text = "No movies found for \"$searchQuery\"")
                         }
                     }
                 }
@@ -499,7 +642,10 @@ fun DescriptionPage(
 
                                 }) {
                             IconButton(
-                                onClick = { navController.popBackStack() },
+                                onClick = { 
+                                    splashViewModel.bottomTabsVisible = true
+                                    navController.popBackStack() 
+                                },
                                 modifier = Modifier
                                     .size(48.dp)
                                     .align(TopStart) // Use BoxScope's alignment
@@ -802,14 +948,16 @@ private fun EachRow(
         containerColor = Color.White
     ), shape = RoundedCornerShape(8.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min) // Ensures the row fits its content
         ) {
             Image(
                 contentScale = ContentScale.Crop,
                 contentDescription = "",
                 modifier = Modifier
                     .width(100.dp)
-                    .height(150.dp),
+                    .fillMaxHeight(), // Fills the height of the row
                 painter = rememberAsyncImagePainter(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data("${ApiService.IMAGE_URL}${res.poster_path}")
@@ -884,5 +1032,3 @@ private fun EachRow(
         }
     }
 }
-
-
