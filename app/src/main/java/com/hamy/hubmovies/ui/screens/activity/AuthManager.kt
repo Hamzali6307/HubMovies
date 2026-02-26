@@ -10,6 +10,10 @@ class AuthManager {
 
     private val auth: FirebaseAuth = Firebase.auth
 
+    suspend fun logout() {
+        auth.signOut()
+    }
+
     suspend fun createUser(email: String, password: String): Boolean {
         return try {
             auth.createUserWithEmailAndPassword(email, password).await()
