@@ -539,7 +539,7 @@ fun MovieScreen(
                     allMovies = (allMovies + data).distinctBy { it.id }
                 }
                 showGenericError = false
-                
+
                 if (filteredMovies.isNotEmpty()) {
                     LazyColumn(state = listState) {
                         items(
@@ -641,9 +641,9 @@ fun DescriptionPage(
 
                                 }) {
                             IconButton(
-                                onClick = { 
+                                onClick = {
                                     splashViewModel.bottomTabsVisible = true
-                                    navController.popBackStack() 
+                                    navController.popBackStack()
                                 },
                                 modifier = Modifier
                                     .size(48.dp)
