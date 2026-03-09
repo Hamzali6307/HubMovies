@@ -1,5 +1,4 @@
-
-package com.hamy.hubmovies.ui.screens.activity
+package com.hamy.hubmovies.utils
 
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth

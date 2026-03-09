@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -115,7 +114,7 @@ import com.google.gson.Gson
 import com.hamy.hubmovies.R
 import com.hamy.hubmovies.data.model.Movies
 import com.hamy.hubmovies.data.network.ApiService
-import com.hamy.hubmovies.ui.screens.activity.AuthManager
+import com.hamy.hubmovies.utils.AuthManager
 import com.hamy.hubmovies.ui.screens.activity.MainActivityViewModel
 import com.hamy.hubmovies.ui.screens.widgets.BottomNavItem.Home
 import com.hamy.hubmovies.ui.viewModel.MovieViewModel
