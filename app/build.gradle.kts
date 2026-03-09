@@ -110,5 +110,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.config)
     implementation("com.google.firebase:firebase-auth-ktx:23.0.0")
+    implementation(libs.lottie.compose)
 }

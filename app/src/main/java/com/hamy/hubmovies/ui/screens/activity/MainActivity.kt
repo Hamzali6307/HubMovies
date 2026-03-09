@@ -3,6 +3,7 @@ package com.hamy.hubmovies.ui.screens.activity
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -36,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +49,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
@@ -54,11 +57,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavController
@@ -66,12 +71,21 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.firebase.auth.FirebaseAuth
 import com.hamy.hubmovies.R
 import com.hamy.hubmovies.ui.screens.widgets.MainScreen
 import com.hamy.hubmovies.ui.theme.HubMoviesTheme
+import com.hamy.hubmovies.utils.AuthManager
 import com.hamy.hubmovies.utils.Constants
+import com.hamy.hubmovies.utils.RemoteConfigManager
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -85,28 +99,95 @@ open class MainActivity : ComponentActivity() {
         window.statusBarColor = ContextCompat.getColor(this, R.color.btn_back)
         setContent {
             val navController = rememberNavController()
-            installSplashScreen().apply {
-                setKeepOnScreenCondition { splashViewModel.isLoading.value }
-            }
             HubMoviesTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.LightGray) // Optional fallback background color
-                    ) {
-                        val image: Painter =
-                            painterResource(id = R.drawable.back) // Reference your drawable image here
-                        Image(
-                            painter = image,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize().blur(radius = 10.dp),
-                            contentScale = ContentScale.Crop // Scales the image to cover the box area
-                        )
-                    }
-                    AppNavigation(navController,splashViewModel)
+                    AppNavigation(navController, splashViewModel)
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SplashScreen(navController: NavController) {
+    val auth = FirebaseAuth.getInstance()
+    var imageUrl by remember { mutableStateOf("") }
+    
+    val welcomeAnim by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.appname))
+    val loadingAnim by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+
+    LaunchedEffect(Unit) {
+        RemoteConfigManager.fetchValues()
+        imageUrl = RemoteConfigManager.getSplashImageUrl()
+        
+        if (RemoteConfigManager.isMaintenanceMode()) {
+            navController.navigate(Constants.Maintenance) {
+                popUpTo(Constants.Splash) { inclusive = true }
+            }
+        } else {
+            val delayTime = RemoteConfigManager.getSplashDelay()
+            delay(delayTime * 1000)
+            val destination = if (auth.currentUser != null) Constants.MainPage else Constants.Login
+            navController.navigate(destination) {
+                popUpTo(Constants.Splash) { inclusive = true }
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+        if (imageUrl.isNotEmpty()) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(imageUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().blur(10.dp),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            LottieAnimation(
+                composition = welcomeAnim,
+                iterations = LottieConstants.IterateForever,
+            )
+            LottieAnimation(
+                composition = loadingAnim,
+                iterations = LottieConstants.IterateForever,
+                modifier = Modifier.size(100.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun MaintenanceScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = null,
+                modifier = Modifier.size(100.dp),
+                tint = Color.Unspecified
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Under Maintenance",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Text(
+                text = "We'll be back shortly!",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.Gray
+            )
         }
     }
 }
@@ -131,15 +212,14 @@ fun SignUpScreen(navController: NavController) {
                 .fillMaxWidth()
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.LightGray) // Optional fallback background color
+                .background(Color.LightGray)
         ) {
-            val image: Painter =
-                painterResource(id = R.drawable.back) // Reference your drawable image here
+            val image: Painter = painterResource(id = R.drawable.back)
             Image(
                 painter = image,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize().blur(radius = 10.dp),
-                contentScale = ContentScale.Crop // Scales the image to cover the box area
+                contentScale = ContentScale.Crop
             )
         }
         Column(
@@ -151,9 +231,9 @@ fun SignUpScreen(navController: NavController) {
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Circular Image with Border",
                 modifier = Modifier
-                    .size(100.dp) // Adjust the size as needed
+                    .size(100.dp)
                     .clip(CircleShape)
-                    .border(2.dp, Color.Black) // Add a black border of 2 dp
+                    .border(2.dp, Color.Black)
             )
             Spacer(modifier = Modifier.height(30.dp))
 
@@ -172,7 +252,6 @@ fun SignUpScreen(navController: NavController) {
                     .fillMaxWidth()
                     .focusRequester(FocusRequester())
                     .padding(30.dp, 0.dp, 30.dp, 10.dp),
-
                 singleLine = true,
                 value = email,
                 onValueChange = { email = it },
@@ -306,6 +385,7 @@ fun SignUpScreen(navController: NavController) {
         }
     }
 }
+
 @Composable
 fun LoginScreen(
     navController: NavController
@@ -326,17 +406,16 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.LightGray) // Optional fallback background color
+                .background(Color.LightGray)
         ) {
-            val image: Painter =
-                painterResource(id = R.drawable.back) // Reference your drawable image here
+            val image: Painter = painterResource(id = R.drawable.back)
             Image(
                 modifier = Modifier
                     .fillMaxSize()
                     .blur(radius = 10.dp),
                 painter = image,
                 contentDescription = null,
-                contentScale = ContentScale.Crop // Scales the image to cover the box area
+                contentScale = ContentScale.Crop
             )
         }
         Column(
@@ -348,9 +427,9 @@ fun LoginScreen(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Circular Image with Border",
                 modifier = Modifier
-                    .size(100.dp) // Adjust the size as needed
+                    .size(100.dp)
                     .clip(RectangleShape)
-                    .border(2.dp, Color.Black) // Add a black border of 2 dp
+                    .border(2.dp, Color.Black)
             )
             Spacer(modifier = Modifier.height(30.dp))
 
@@ -471,14 +550,11 @@ fun LoginScreen(
 
 @Composable
 fun AppNavigation(navController: NavHostController, splashViewModel: MainActivityViewModel) {
-    val auth = FirebaseAuth.getInstance()
-    val startDestination = if (auth.currentUser != null) Constants.MainPage else Constants.Login
-
-    navController.apply {
-        NavHost(navController = this, startDestination = startDestination) {
-            composable(Constants.Login) { LoginScreen(this@apply) }  // Start with LoginScreen
-            composable(Constants.Signup) { SignUpScreen(this@apply) }  // Start with LoginScreen
-            composable(Constants.MainPage) { MainScreen(this@apply,splashViewModel) }  // Navigate to MainScreen
-        }
+    NavHost(navController = navController, startDestination = Constants.Splash) {
+        composable(Constants.Splash) { SplashScreen(navController) }
+        composable(Constants.Maintenance) { MaintenanceScreen() }
+        composable(Constants.Login) { LoginScreen(navController) }
+        composable(Constants.Signup) { SignUpScreen(navController) }
+        composable(Constants.MainPage) { MainScreen(navController, splashViewModel) }
     }
 }
