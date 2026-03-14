@@ -3,7 +3,6 @@ package com.hamy.hubmovies.ui.screens.activity
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -12,7 +11,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +21,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.Lock
@@ -49,14 +49,13 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -65,7 +64,6 @@ import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -83,6 +81,7 @@ import com.hamy.hubmovies.ui.screens.widgets.MainScreen
 import com.hamy.hubmovies.ui.theme.HubMoviesTheme
 import com.hamy.hubmovies.utils.AuthManager
 import com.hamy.hubmovies.utils.Constants
+import com.hamy.hubmovies.utils.Extensions.isLandscape
 import com.hamy.hubmovies.utils.RemoteConfigManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -205,6 +204,8 @@ fun SignUpScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val authManager = remember { AuthManager() }
     val context = LocalContext.current
+    
+    val bgImageUrl = remember { RemoteConfigManager.getLoginSignUpImageUrl() }
 
     Scaffold { padding ->
         Box(
@@ -214,16 +215,28 @@ fun SignUpScreen(navController: NavController) {
                 .padding(padding)
                 .background(Color.LightGray)
         ) {
-            val image: Painter = painterResource(id = R.drawable.back)
-            Image(
-                painter = image,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize().blur(radius = 10.dp),
-                contentScale = ContentScale.Crop
-            )
+            if (bgImageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(bgImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().blur(radius = 15.dp),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                val image: Painter = painterResource(id = R.drawable.back)
+                Image(
+                    painter = image,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().blur(radius = 10.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -231,9 +244,8 @@ fun SignUpScreen(navController: NavController) {
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Circular Image with Border",
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(if(isLandscape())100.dp else 200.dp )
                     .clip(CircleShape)
-                    .border(2.dp, Color.Black)
             )
             Spacer(modifier = Modifier.height(30.dp))
 
@@ -336,8 +348,8 @@ fun SignUpScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(30.dp, 0.dp, 30.dp, 10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(id = R.color.btn_back),
-                    contentColor = Color.White,
+                    containerColor = colorResource(id = R.color.white),
+                    contentColor = Color.Gray,
                 ),
                 enabled = !isLoading,
                 onClick = {
@@ -399,6 +411,8 @@ fun LoginScreen(
     val coroutineScope = rememberCoroutineScope()
     val authManager = remember { AuthManager() }
     val context = LocalContext.current
+    
+    val bgImageUrl = remember { RemoteConfigManager.getLoginSignUpImageUrl() }
 
     Scaffold { padding ->
         Box(
@@ -408,18 +422,30 @@ fun LoginScreen(
                 .padding(padding)
                 .background(Color.LightGray)
         ) {
-            val image: Painter = painterResource(id = R.drawable.back)
-            Image(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(radius = 10.dp),
-                painter = image,
-                contentDescription = null,
-                contentScale = ContentScale.Crop
-            )
+            if (bgImageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(bgImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().blur(radius = 15.dp),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                val image: Painter = painterResource(id = R.drawable.back)
+                Image(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(radius = 10.dp),
+                    painter = image,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -427,20 +453,22 @@ fun LoginScreen(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Circular Image with Border",
                 modifier = Modifier
-                    .size(100.dp)
-                    .clip(RectangleShape)
-                    .border(2.dp, Color.Black)
+                    .size(if(isLandscape())100.dp else 200.dp )
+                    .clip(CircleShape)
             )
             Spacer(modifier = Modifier.height(30.dp))
 
             Text(
+                text = "Let's\nGet In",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(30.dp, 0.dp, 0.dp, 10.dp),
-                text = "Login",
-                fontSize = TextUnit(30f, TextUnitType.Sp),
+                    .padding(start = 30.dp, bottom = 10.dp),
                 color = Color.White,
-                style = MaterialTheme.typography.labelLarge
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 40.sp,
+                letterSpacing = 1.sp,
+                fontFamily = FontFamily.SansSerif
             )
 
             OutlinedTextField(
@@ -500,8 +528,8 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .padding(30.dp, 0.dp, 30.dp, 10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(id = R.color.btn_back),
-                    contentColor = Color.White
+                    containerColor = colorResource(id = R.color.white),
+                    contentColor = Color.Gray
                 ),
                 enabled = !isLoading,
                 onClick = {

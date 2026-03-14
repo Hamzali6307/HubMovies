@@ -20,6 +20,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,11 +83,17 @@ import com.hamy.hubmovies.utils.Constants.MyLOGS
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.YouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 
 object Extensions {
     fun mLogs(data: String) {
         Log.e(MyLOGS, data)
+    }
+
+    @Composable
+    fun isLandscape(): Boolean {
+        return LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     }
 
     fun mToast(data: String, context: Context) {
@@ -163,7 +170,8 @@ object Extensions {
             }
         }
 
-        DisposableEffect(isFullScreen) {
+        DisposableEffect(Unit) {
+            setFullScreen(true)
             onDispose { setFullScreen(false) } // Restore system UI when exiting
         }
 
@@ -176,12 +184,21 @@ object Extensions {
                     YouTubePlayerView(ctx).apply {
                         enableAutomaticInitialization = false
                         lifecycleOwner.lifecycle.addObserver(this)
+                        
+                        // Error 152-4 is often due to missing origin. 
+                        // Using a more robust configuration.
+                        val options = IFramePlayerOptions.Builder()
+                            .controls(1)
+                            .fullscreen(0) // We handle fullscreen manually
+                            .build()
+                        
                         initialize(object : AbstractYouTubePlayerListener() {
                             override fun onReady(youTubePlayer: YouTubePlayer) {
+                                // Using loadVideo to auto-play. 
+                                // Some restricted videos might need a small delay or cueVideo.
                                 youTubePlayer.loadVideo(videoId, 0f)
-                                youTubePlayer.play()
                             }
-                        })
+                        }, options)
                     }
                 },
                 modifier = if (isFullScreen) Modifier.fillMaxSize() else Modifier
@@ -192,8 +209,6 @@ object Extensions {
             // ❌ Close Button (Top Right)
             IconButton(
                 onClick = {
-                    // (context as? Activity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    setFullScreen(false) // Exit fullscreen before closing
                     onClose()
                 },
                 modifier = Modifier
@@ -207,8 +222,7 @@ object Extensions {
             // 🔄 Fullscreen Toggle Button (Bottom Right)
             IconButton(
                 onClick = {
-                    (context as? Activity)?.requestedOrientation =
-                        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    setFullScreen(!isFullScreen)
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -238,6 +252,8 @@ object Extensions {
                     .fillMaxWidth()
                     .height(48.dp)
                     .shimmerEffect()
+                    .clip(RoundedCornerShape(15.dp))
+
             )
             Spacer(modifier = Modifier.height(16.dp))
             Box(
@@ -254,6 +270,8 @@ object Extensions {
                     .fillMaxWidth()
                     .height(20.dp)
                     .shimmerEffect()
+                    .clip(RoundedCornerShape(15.dp))
+
             )
             Spacer(modifier = Modifier.height(8.dp))
             Box(
@@ -261,6 +279,8 @@ object Extensions {
                     .fillMaxWidth()
                     .height(40.dp)
                     .shimmerEffect()
+                    .clip(RoundedCornerShape(15.dp))
+
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -296,6 +316,8 @@ object Extensions {
                     .fillMaxWidth()
                     .height(30.dp)
                     .shimmerEffect()
+                    .clip(RoundedCornerShape(15.dp))
+
             )
             Spacer(modifier = Modifier.height(8.dp))
             LazyRow(
@@ -328,12 +350,16 @@ object Extensions {
                     .width(50.dp)
                     .height(15.dp)
                     .shimmerEffect()
+                    .clip(RoundedCornerShape(15.dp))
+
             )
             Box(
                 modifier = Modifier
                     .width(50.dp)
                     .height(15.dp)
                     .shimmerEffect()
+                    .clip(RoundedCornerShape(15.dp))
+
             )
         }
     }

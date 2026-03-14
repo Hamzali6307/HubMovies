@@ -35,5 +35,7 @@ object RemoteConfigManager {
 
     fun getSplashDelay(): Long = remoteConfig.getLong("splash_delay")
     fun getSplashImageUrl(): String = remoteConfig.getString("splash_image_url")
+
+    fun getLoginSignUpImageUrl(): String = remoteConfig.getString("auth_image_url")
     fun isMaintenanceMode(): Boolean = remoteConfig.getBoolean("maintenance_mode")
 }

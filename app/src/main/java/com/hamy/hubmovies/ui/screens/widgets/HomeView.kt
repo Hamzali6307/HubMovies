@@ -109,7 +109,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
-import coil.transform.CircleCropTransformation
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.gson.Gson
 import com.hamy.hubmovies.R
 import com.hamy.hubmovies.data.model.Movies
@@ -124,6 +127,7 @@ import com.hamy.hubmovies.utils.Extensions.ExpandableText
 import com.hamy.hubmovies.utils.Extensions.FullScreenYouTubePlayer
 import com.hamy.hubmovies.utils.Extensions.GenericErrorScreen
 import com.hamy.hubmovies.utils.Extensions.ShimmerDescriptionPage
+import com.hamy.hubmovies.utils.Extensions.isLandscape
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -158,8 +162,10 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
                     },
                     icon = { Icon(Icons.Filled.Home, contentDescription = null) }
                 )
+                HorizontalDivider()
+
                 NavigationDrawerItem(
-                    label = { Text("Profile") },
+                    label = { Text("Top Rated") },
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
@@ -167,6 +173,7 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
                     },
                     icon = { Icon(Icons.Filled.Person, contentDescription = null) }
                 )
+                HorizontalDivider()
                 NavigationDrawerItem(
                     label = { Text("Settings") },
                     selected = false,
@@ -176,6 +183,7 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
                     },
                     icon = { Icon(Icons.Filled.Settings, contentDescription = null) }
                 )
+                HorizontalDivider()
             }
         }
     ) {
@@ -240,9 +248,7 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
                     NavigationBar {
                         val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
                         val currentRoute = navBackStackEntry?.destination?.route
-                        listOf(
-                            Home, BottomNavItem.Profile, BottomNavItem.Settings
-                        ).forEach { item ->
+                        listOf(Home, BottomNavItem.Profile, BottomNavItem.Settings).forEach { item ->
                             NavigationBarItem(
                                 icon = {
                                     Icon(
@@ -253,6 +259,7 @@ fun MainScreen(navController: NavHostController, splashViewModel: MainActivityVi
                                 label = { Text(item.title) },
                                 selected = currentRoute == item.screenRoute,
                                 onClick = {
+
                                     innerNavController.navigate(item.screenRoute) {
                                         innerNavController.graph.startDestinationRoute?.let { screenRoute ->
                                             popUpTo(screenRoute) {
@@ -328,6 +335,7 @@ fun ProfileScreen(
     viewModel: MovieViewModel = hiltViewModel(),
     searchQuery: String = ""
 ) {
+    val loadingAnim by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var pageNumber by remember { mutableIntStateOf(1) }
@@ -384,7 +392,7 @@ fun ProfileScreen(
         if (filteredItems.isNotEmpty()) {
             LazyVerticalGrid(
                 state = state,
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Fixed(if(isLandscape())5 else 3),
                 contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -429,7 +437,12 @@ fun ProfileScreen(
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator()
+                            LottieAnimation(
+                                composition = loadingAnim,
+                                iterations = LottieConstants.IterateForever,
+                                modifier = Modifier.size(100.dp)
+                            )
+                           // CircularProgressIndicator()
                         }
                     }
                 }
@@ -437,7 +450,12 @@ fun ProfileScreen(
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 if (viewModel.topRatedMovies.value.isLoading) {
-                    CircularProgressIndicator()
+                    //CircularProgressIndicator()
+                    LottieAnimation(
+                        composition = loadingAnim,
+                        iterations = LottieConstants.IterateForever,
+                        modifier = Modifier.size(100.dp)
+                    )
                 } else if (viewModel.res.value.error.isNotEmpty()) {
                     Text(text = viewModel.topRatedMovies.value.error)
                 } else if (searchQuery.isNotEmpty()) {
@@ -491,6 +509,7 @@ fun MovieScreen(
     viewModel: MovieViewModel = hiltViewModel(),
     searchQuery: String = ""
 ) {
+    val loadingAnim by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
     var pageNumber by remember { mutableStateOf(1) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var showGenericError by remember { mutableStateOf(false) }
@@ -525,7 +544,12 @@ fun MovieScreen(
         when {
             isLoading && pageNumber == 1 -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
-                    CircularProgressIndicator()
+                  //  CircularProgressIndicator()
+                    LottieAnimation(
+                        composition = loadingAnim,
+                        iterations = LottieConstants.IterateForever,
+                        modifier = Modifier.size(100.dp)
+                    )
                 }
             }
 
@@ -556,7 +580,12 @@ fun MovieScreen(
                                         .padding(16.dp),
                                     contentAlignment = Center
                                 ) {
-                                    CircularProgressIndicator()
+                                   // CircularProgressIndicator()
+                                    LottieAnimation(
+                                        composition = loadingAnim,
+                                        iterations = LottieConstants.IterateForever,
+                                        modifier = Modifier.size(100.dp)
+                                    )
                                 }
                             }
                         }
@@ -589,6 +618,8 @@ fun DescriptionPage(
     splashViewModel: MainActivityViewModel,
     viewModel: MovieViewModel = hiltViewModel()
 ) {
+    val loadingAnim by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+
     Extensions.mBackPressHandle(navController, splashViewModel)
     LaunchedEffect(movie?.id.toString()) {
         viewModel.getMovieDetails(movie?.id.toString())
@@ -607,8 +638,8 @@ fun DescriptionPage(
                 Text(text = error)
             }
         }
-        if (data != null) {
 
+        if (data != null) {
             Box(modifier = Modifier.wrapContentSize()) {
                 Image(
                     modifier = Modifier
@@ -623,12 +654,10 @@ fun DescriptionPage(
                     contentDescription = "",
                     contentScale = ContentScale.Crop
                 )
-                Column(
-                    modifier = Modifier
+                Column(modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                        .padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
 
                     Column(
                         modifier = Modifier.padding(10.dp),
@@ -656,226 +685,488 @@ fun DescriptionPage(
                                 )
                             }
                         }
-                        Image(
-                            modifier = Modifier
-                                .width(300.dp)
-                                .height(400.dp)
-                                .padding(10.dp)
-                                .clip(RoundedCornerShape(15.dp)),
-                            painter = rememberAsyncImagePainter(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data("${ApiService.IMAGE_URL}${data?.poster_path}")
-                                    // .placeholder(R.drawable.ic_loading)
-                                    .crossfade(true)
-                                    // .transformations(CircleCropTransformation())
-                                    .build()
-                            ),
-                            contentDescription = "",
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            style = TextStyle(fontSize = 16.sp),
-                            color = Color.White,
-                            text = data?.original_title ?: "",
-                            textAlign = TextAlign.Center,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ExpandableText(data?.overview ?: "")
 
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround
-                        ) {
-                            Column(modifier = Modifier.wrapContentSize()) {
-                                Text(
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    text = "Rating:" + data?.vote_average.toString(),
-                                )
-                                Text(
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    text = data?.vote_average.toString(),
-                                )
-                            }
-                            Divider(
-                                modifier = Modifier
-                                    .height(25.dp)
-                                    .width(1.dp),
-                                color = Color.Gray // Change color as needed
-                            )
-                            Column(modifier = Modifier.wrapContentSize()) {
-                                Text(
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    text = "Release Date",
-                                )
-                                Text(
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    text = data?.release_date.toString(),
-                                )
-                            }
-                            Divider(
-                                modifier = Modifier
-                                    .height(25.dp)
-                                    .width(1.dp),
-                                color = Color.Gray // Change color as needed
-                            )
-                            Column(modifier = Modifier.wrapContentSize()) {
-                                Text(
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    text = "Status",
-                                )
-                                Text(
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    text = data?.status.toString(),
-                                )
-                            }
-                            Divider(
-                                modifier = Modifier
-                                    .height(25.dp)
-                                    .width(1.dp),
-                                color = Color.Gray // Change color as needed
-                            )
-                            Column(modifier = Modifier.wrapContentSize()) {
-                                Text(
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    text = "Adult",
-                                )
-                                Text(
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    text = data?.adult.toString(),
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        var showVideoPlayer by remember { mutableStateOf(false) }
-                        var videoId by remember { mutableStateOf(0) }
-
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
+                        if(isLandscape()){
+                            Row() {
+                                Image(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            horizontal = 16.dp, vertical = 8.dp
-                                        ), // optional padding for row
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                        .width(300.dp)
+                                        .height(400.dp)
+                                        .padding(10.dp)
+                                        .clip(RoundedCornerShape(15.dp)),
+                                    painter = rememberAsyncImagePainter(
+                                        model = ImageRequest.Builder(LocalContext.current)
+                                            .data("${ApiService.IMAGE_URL}${data?.poster_path}")
+                                            // .placeholder(R.drawable.ic_loading)
+                                            .crossfade(true)
+                                            // .transformations(CircleCropTransformation())
+                                            .build()
+                                    ),
+                                    contentDescription = "",
+                                    contentScale = ContentScale.Crop
+                                )
+                                Column() {
+                                    Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "Trending",
-                                        color = Color.Gray,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        modifier = Modifier
-                                            .background(
-                                                Color.Yellow, shape = CircleShape
-                                            )
-                                            .clickable {
-                                                showVideoPlayer = true
-                                                videoId = data.id ?: 0
-                                            }
-                                            .padding(
-                                                horizontal = 12.dp, vertical = 6.dp
-                                            ) // background padding
-                                    )
-                                    Text(
-                                        text = "Watch Now",
+                                        style = TextStyle(fontSize = 16.sp),
                                         color = Color.White,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        modifier = Modifier
-                                            .background(
-                                                Color.Red, shape = CircleShape
-                                            )
-                                            .clickable {
-                                                showVideoPlayer = true
-                                                videoId = data.id ?: 0
-                                            }
-                                            .padding(
-                                                horizontal = 12.dp, vertical = 6.dp
-                                            ) // background padding
+                                        text = data?.original_title ?: "",
+                                        textAlign = TextAlign.Center,
                                     )
-                                }
-
-
-                                Spacer(modifier = Modifier.width(4.dp)) // Add some space between text and icon
-                                Icon(
-                                    imageVector = Icons.Filled.PlayArrow,
-                                    contentDescription = "Play",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(16.dp) // Adjust icon size as needed
-                                )
-                                if (showVideoPlayer) {
-                                    LoadVideo(navController, viewModel = viewModel, data.id ?: 0)
-                                }
-                            }
-                        }
-
-                        // trending movies
-                        viewModel.trendingMovies.value.apply {
-                            if (isLoading) {
-                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                            if (error.isNotEmpty()) {
-                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Center) {
-                                    Text(text = error)
-                                }
-                            }
-                            if (data != null) {
-                                LazyRow(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .defaultMinSize(100.dp, 200.dp)
-                                        .padding(5.dp),
-                                    // .background(Color.Black.copy(alpha = 0.5F)),
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    items(data.results?.toList() ?: emptyList()) { movie ->
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(Color.Black.copy(alpha = 0.5F))
-                                                .width(100.dp)
-                                                .height(200.dp)
-                                        ) {
-                                            Image(
-                                                modifier = Modifier.fillMaxSize(),
-                                                painter = rememberAsyncImagePainter(
-                                                    model = ImageRequest.Builder(LocalContext.current)
-                                                        .data("${ApiService.IMAGE_URL}${movie?.poster_path}")
-                                                        //.placeholder(R.drawable.ic_loading)
-                                                        .crossfade(true).build()
-                                                ),
-                                                contentDescription = "",
-                                                contentScale = ContentScale.Crop
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    ExpandableText(data?.overview ?: "")
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceAround
+                                    )
+                                    {
+                                        Column(modifier = Modifier.wrapContentSize()) {
+                                            Text(
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                text = "Rating",
                                             )
                                             Text(
-                                                maxLines = 2,
-                                                textAlign = TextAlign.Center,
-                                                text = movie?.original_title ?: "",
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                text = data?.vote_average.toString(),
+                                            )
+                                        }
+                                        Divider(
+                                            modifier = Modifier
+                                                .height(25.dp)
+                                                .width(1.dp),
+                                            color = Color.Gray // Change color as needed
+                                        )
+                                        Column(modifier = Modifier.wrapContentSize()) {
+                                            Text(
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                text = "Release Date",
+                                            )
+                                            Text(
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                text = data?.release_date.toString(),
+                                            )
+                                        }
+                                        Divider(
+                                            modifier = Modifier
+                                                .height(25.dp)
+                                                .width(1.dp),
+                                            color = Color.Gray // Change color as needed
+                                        )
+                                        Column(modifier = Modifier.wrapContentSize()) {
+                                            Text(
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                text = "Status",
+                                            )
+                                            Text(
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                text = data?.status.toString(),
+                                            )
+                                        }
+                                        Divider(
+                                            modifier = Modifier
+                                                .height(25.dp)
+                                                .width(1.dp),
+                                            color = Color.Gray // Change color as needed
+                                        )
+                                        Column(modifier = Modifier.wrapContentSize()) {
+                                            Text(
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                text = "Adult",
+                                            )
+                                            Text(
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                text = data?.adult.toString(),
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    var showVideoPlayer by remember { mutableStateOf(false) }
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .align(Alignment.BottomCenter)
-                                                    .background(Color.Black.copy(alpha = 0.6f)),
-                                                color = Color.White,
-                                                fontSize = 12.sp
+                                                    .padding(
+                                                        horizontal = 16.dp, vertical = 8.dp
+                                                    ), // optional padding for row
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "Trending",
+                                                    color = Color.Gray,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    modifier = Modifier
+                                                        .background(
+                                                            Color.Yellow, shape = CircleShape
+                                                        )
+                                                        .clickable{}
+                                                        .padding(
+                                                            horizontal = 12.dp, vertical = 6.dp
+                                                        ) // background padding
+                                                )
+                                                Text(
+                                                    text = "Watch Now",
+                                                    color = Color.White,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    modifier = Modifier
+                                                        .background(
+                                                            Color.Red, shape = CircleShape
+                                                        )
+                                                        .clickable {
+                                                            showVideoPlayer = true
+                                                        }
+                                                        .padding(
+                                                            horizontal = 12.dp, vertical = 6.dp
+                                                        ) // background padding
+                                                )
+                                            }
+
+
+                                            Spacer(modifier = Modifier.width(4.dp)) // Add some space between text and icon
+                                            Icon(
+                                                imageVector = Icons.Filled.PlayArrow,
+                                                contentDescription = "Play",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp) // Adjust icon size as needed
                                             )
+                                            if (showVideoPlayer) {
+                                                LoadVideo(
+                                                    navController,
+                                                    viewModel = viewModel,
+                                                    id = data.id ?: 0,
+                                                    onDismiss = { showVideoPlayer = false }
+                                                )
+                                            }
+                                        }
+                                    }
+                                    // trending movies
+                                    viewModel.trendingMovies.value.apply {
+                                        if (isLoading) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Center
+                                            ) {
+                                                LottieAnimation(
+                                                    composition = loadingAnim,
+                                                    iterations = LottieConstants.IterateForever,
+                                                    modifier = Modifier.size(100.dp)
+                                                )
+                                            }
+                                        }
+                                        if (error.isNotEmpty()) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Center
+                                            ) {
+                                                Text(text = error)
+                                            }
+                                        }
+                                        if (data != null) {
+                                            LazyRow(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .defaultMinSize(100.dp, 200.dp)
+                                                    .padding(5.dp),
+                                                // .background(Color.Black.copy(alpha = 0.5F)),
+                                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                items(data.results?.toList() ?: emptyList()) { movie ->
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(10.dp))
+                                                            .background(Color.Black.copy(alpha = 0.5F))
+                                                            .width(100.dp)
+                                                            .height(200.dp)
+                                                            .clickable {
+                                                                viewModel.getMovieDetails(movie?.id.toString())
+                                                            }
+                                                    ) {
+                                                        Image(
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            painter = rememberAsyncImagePainter(
+                                                                model = ImageRequest.Builder(LocalContext.current)
+                                                                    .data("${ApiService.IMAGE_URL}${movie?.poster_path}")
+                                                                    .placeholder(R.drawable.ic_loading)
+                                                                    .crossfade(true).build()
+                                                            ),
+                                                            contentDescription = "",
+                                                            contentScale = ContentScale.Crop
+                                                        )
+                                                        Text(
+                                                            maxLines = 2,
+                                                            textAlign = TextAlign.Center,
+                                                            text = movie?.original_title ?: "",
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .align(Alignment.BottomCenter)
+                                                                .background(Color.Black.copy(alpha = 0.6f)),
+                                                            color = Color.White,
+                                                            fontSize = 12.sp
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }else {
+                            Image(
+                                modifier = Modifier
+                                    .width(300.dp)
+                                    .height(400.dp)
+                                    .padding(10.dp)
+                                    .clip(RoundedCornerShape(15.dp)),
+                                painter = rememberAsyncImagePainter(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data("${ApiService.IMAGE_URL}${data?.poster_path}")
+                                        // .placeholder(R.drawable.ic_loading)
+                                        .crossfade(true)
+                                        // .transformations(CircleCropTransformation())
+                                        .build()
+                                ),
+                                contentDescription = "",
+                                contentScale = ContentScale.Crop
+                            )
+                            Column() {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    style = TextStyle(fontSize = 16.sp),
+                                    color = Color.White,
+                                    text = data?.original_title ?: "",
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                ExpandableText(data?.overview ?: "")
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceAround
+                                )
+                                {
+                                    Column(modifier = Modifier.wrapContentSize()) {
+                                        Text(
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            text = "Rating",
+                                        )
+                                        Text(
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            text = data?.vote_average.toString(),
+                                        )
+                                    }
+                                    Divider(
+                                        modifier = Modifier
+                                            .height(25.dp)
+                                            .width(1.dp),
+                                        color = Color.Gray // Change color as needed
+                                    )
+                                    Column(modifier = Modifier.wrapContentSize()) {
+                                        Text(
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            text = "Release Date",
+                                        )
+                                        Text(
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            text = data?.release_date.toString(),
+                                        )
+                                    }
+                                    Divider(
+                                        modifier = Modifier
+                                            .height(25.dp)
+                                            .width(1.dp),
+                                        color = Color.Gray // Change color as needed
+                                    )
+                                    Column(modifier = Modifier.wrapContentSize()) {
+                                        Text(
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            text = "Status",
+                                        )
+                                        Text(
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            text = data?.status.toString(),
+                                        )
+                                    }
+                                    Divider(
+                                        modifier = Modifier
+                                            .height(25.dp)
+                                            .width(1.dp),
+                                        color = Color.Gray // Change color as needed
+                                    )
+                                    Column(modifier = Modifier.wrapContentSize()) {
+                                        Text(
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            text = "Adult",
+                                        )
+                                        Text(
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            text = data?.adult.toString(),
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                var showVideoPlayer by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(
+                                                    horizontal = 16.dp, vertical = 8.dp
+                                                ), // optional padding for row
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Trending",
+                                                color = Color.Gray,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                modifier = Modifier
+                                                    .background(
+                                                        Color.Yellow, shape = CircleShape
+                                                    )
+                                                    .clickable {
+//                                                showVideoPlayer = true
+//                                                videoId = data.id ?: 0
+                                                    }
+                                                    .padding(
+                                                        horizontal = 12.dp, vertical = 6.dp
+                                                    ) // background padding
+                                            )
+                                            Text(
+                                                text = "Watch Now",
+                                                color = Color.White,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                modifier = Modifier
+                                                    .background(
+                                                        Color.Red, shape = CircleShape
+                                                    )
+                                                    .clickable {
+                                                        showVideoPlayer = true
+                                                    }
+                                                    .padding(
+                                                        horizontal = 12.dp, vertical = 6.dp
+                                                    ) // background padding
+                                            )
+                                        }
+
+
+                                        Spacer(modifier = Modifier.width(4.dp)) // Add some space between text and icon
+                                        Icon(
+                                            imageVector = Icons.Filled.PlayArrow,
+                                            contentDescription = "Play",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp) // Adjust icon size as needed
+                                        )
+                                        if (showVideoPlayer) {
+                                            LoadVideo(
+                                                navController,
+                                                viewModel = viewModel,
+                                                id = data.id ?: 0,
+                                                onDismiss = { showVideoPlayer = false }
+                                            )
+                                        }
+                                    }
+                                }
+                                // trending movies
+                                viewModel.trendingMovies.value.apply {
+                                    if (isLoading) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Center
+                                        ) {
+                                            //   CircularProgressIndicator()
+
+                                            LottieAnimation(
+                                                composition = loadingAnim,
+                                                iterations = LottieConstants.IterateForever,
+                                                modifier = Modifier.size(100.dp)
+                                            )
+                                        }
+                                    }
+                                    if (error.isNotEmpty()) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Center
+                                        ) {
+                                            Text(text = error)
+                                        }
+                                    }
+                                    if (data != null) {
+                                        LazyRow(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .defaultMinSize(100.dp, 200.dp)
+                                                .padding(5.dp),
+                                            // .background(Color.Black.copy(alpha = 0.5F)),
+                                            contentPadding = PaddingValues(horizontal = 16.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            items(data.results?.toList() ?: emptyList()) { movie ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(Color.Black.copy(alpha = 0.5F))
+                                                        .width(100.dp)
+                                                        .height(200.dp)
+                                                        .clickable {
+                                                            viewModel.getMovieDetails(movie?.id.toString())
+                                                        }
+                                                ) {
+                                                    Image(
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        painter = rememberAsyncImagePainter(
+                                                            model = ImageRequest.Builder(
+                                                                LocalContext.current
+                                                            )
+                                                                .data("${ApiService.IMAGE_URL}${movie?.poster_path}")
+                                                                .placeholder(R.drawable.ic_loading)
+                                                                .crossfade(true).build()
+                                                        ),
+                                                        contentDescription = "",
+                                                        contentScale = ContentScale.Crop
+                                                    )
+                                                    Text(
+                                                        maxLines = 2,
+                                                        textAlign = TextAlign.Center,
+                                                        text = movie?.original_title ?: "",
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .align(Alignment.BottomCenter)
+                                                            .background(Color.Black.copy(alpha = 0.6f)),
+                                                        color = Color.White,
+                                                        fontSize = 12.sp
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -890,49 +1181,47 @@ fun DescriptionPage(
 
 @RequiresApi(Build.VERSION_CODES.R)
 @Composable
-fun LoadVideo(navController: NavHostController, viewModel: MovieViewModel, id: Int) {
-    var videoId by remember { mutableStateOf("") }
+fun LoadVideo(navController: NavHostController, viewModel: MovieViewModel, id: Int, onDismiss: () -> Unit) {
+    val movieLinkState by viewModel.movieLink
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showPlayer by remember { mutableStateOf(true) }
+    val loadingAnim by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+
     LaunchedEffect(id) {
         viewModel.getVideoLink(id)
     }
-    viewModel.movieLink.value.apply {
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(), contentAlignment = Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-        if (error.isNotEmpty()) {
-            scope.launch {
-                snackbarHostState.showSnackbar("Video Link not found")
-            }
-        }
-        if (data != null) {
-            videoId = data.results?.firstOrNull()?.key ?: ""
-        } else {
-            scope.launch {
-                snackbarHostState.showSnackbar("Video Link not found")
-            }
-        }
-    }
-    when {
-        videoId.isNotEmpty() && showPlayer -> {
-            navController.navigate("${Constants.PlayVideo}/${videoId}")
-            showPlayer = false
 
+    LaunchedEffect(movieLinkState) {
+        if (!movieLinkState.isLoading) {
+            val videoKey = movieLinkState.data.results?.firstOrNull { it.site == "YouTube" }?.key
+            if (!videoKey.isNullOrEmpty()) {
+                onDismiss()
+                navController.navigate("${Constants.PlayVideo}/${videoKey}")
+            } else if (movieLinkState.error.isNotEmpty() || movieLinkState.data.results.isNullOrEmpty()) {
+                snackbarHostState.showSnackbar("Video Link not found")
+                onDismiss()
+            }
         }
     }
+
+    if (movieLinkState.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(), contentAlignment = Center
+        ) {
+            LottieAnimation(
+                composition = loadingAnim,
+                iterations = LottieConstants.IterateForever,
+                modifier = Modifier.size(100.dp)
+            )
+        }
+    }
+    SnackbarHost(hostState = snackbarHostState)
 }
 
 @Composable
 private fun EachRow(
     res: Movies.Results, navController: NavHostController, splashViewModel: MainActivityViewModel
 ) {
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
